@@ -1,0 +1,41 @@
+# 编译输出
+build/
+.build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.exe
+*.out
+*.app
+*.mod
+*.pyc
+*.pyo
+*.pyd
+*.class
+*.log
+*.tmp
+*.swp
+*.swo
+
+# IDE/编辑器配置
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.user
+*.workspace
+*.code-workspace
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 其他常见临时文件
+*~
+#*# 
