@@ -2,15 +2,13 @@
 #ifndef _MRCONSTANTPARAMSGPU3DH_
 #define _MRCONSTANTPARAMSGPU3DH_
 
-
-
 #define def_c  0.57735027f
 #define def_w0 (1.0f/3.375f) // center (0)
 #define def_ws (1.0f/13.5f) // straight (1-6)
 #define def_we (1.0f/54.0f) // edge (7-18)
 #define def_wc (1.0f/216.0f) // corner (19-26)
-#define def_6_sigma 6.0f * 4e-3f   // 3e-3
-#define K_h 1e-3
+#define def_6_sigma 6.0f * 4e-3f   // surface tension
+#define K_h 1e-3 //Henry's constant
 
 __constant__ float d3q7_w[7] = { 1.f / 4.f, 1.f / 8.f,1.f / 8.f, 1.f / 8.f, 1.f / 8.f, 1.f / 8.f, 1.f / 8.f };
 //                                  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26

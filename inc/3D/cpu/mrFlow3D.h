@@ -19,20 +19,11 @@ struct mlBubble3D
 	double* volume;
 	double* init_volume;
 	double* rho;
-	// REAL* volume_diff;
-
 	double* label_init_volume;
-
-	// float3* center;
-	// REAL* disjoint_pressure;
 	double* label_volume;
 	int label_num;
-	// REAL *T;
 	unsigned int max_bubble_count = 65536;
 	int bubble_count = 0;
-	int* freeze;
-	float* pure_gas_volume;
-	float* pure_label_gas_volume;
 };
 
 
@@ -42,27 +33,16 @@ class mrFlow3D
 public:
 	mrFlow3D();
 	~mrFlow3D();
-	MLLATTICENODE_SURFACE_FLAG* flag;// domain flag
-	MLLATTICENODE_SURFACE_FLAG* postflag;
+	unsigned char* flag;// domain flag
 
-	/*
-	* rhoVar 0
-	* uxVar  1
-	* uyVar  2
-	* pixx   3
-	* pixy   4
-	* piyy   5
-	*/
 	REAL* fMom;
 	REAL* fMomPost;
-	REAL* fMomViewer;
+
 	MLFluidParam3D* param;
-	int* cutcell;
-	int* interp;
-	float3* u_interp;
 	REAL* forcex;
 	REAL* forcey;
 	REAL* forcez;
+
 	REAL* rho;
 	REAL* mass;
 	REAL* massex;
@@ -70,7 +50,7 @@ public:
 	float3* u;
 
 	REAL vis_shear;
-	cudaStream_t stream;
+
 	long count = 0;
 
 	// the property for bubble
@@ -80,11 +60,9 @@ public:
 	unsigned char* input_matrix;
 	int* label_matrix;
 
-
 	bool* merge_detector;
 	int merge_flag;
 	int split_flag;
-
 
 
 	REAL* delta_phi;
@@ -131,13 +109,9 @@ inline void mrFlow3D::BubbleBufferInit(int max_bubble_num)
 	this->bubble.rho = new double[max_bubble_num]{ 0.f };
 	this->bubble.label_init_volume = new double[max_bubble_num]{ 0.f };
 
-	//this->bubble.center = new float3[max_bubble_num];
-	//this->bubble.disjoint_pressure = new REAL[max_bubble_num * 9];
 	this->bubble.label_volume = new double[max_bubble_num]{ 0.f };
 	this->bubble.label_num = -1;
-	this->bubble.freeze = new int[max_bubble_num] { 0 };
-	this->bubble.pure_gas_volume = new float[max_bubble_num] { 0.f };
-	this->bubble.pure_label_gas_volume = new float[max_bubble_num] { 0.f };
+
 }
 
 inline void mrFlow3D::Create(
@@ -150,6 +124,8 @@ inline void mrFlow3D::Create(
 {
 	this->vis_shear = vis;
 	param = new MLFluidParam3D[1];
+
+	//record
 	long sample_x_count = 0; long sample_y_count = 0; long sample_z_count = 0;
 	REAL endx = 0; REAL endy = 0; REAL endz = 0;
 	REAL i = 0;
@@ -182,33 +158,29 @@ inline void mrFlow3D::Create(
 
 	fMom = new REAL[10 * count]{};
 	fMomPost = new REAL[10 * count]{};
-	fMomViewer = new REAL[10 * count];
 
 	flag = new MLLATTICENODE_SURFACE_FLAG[count];
-	postflag = new MLLATTICENODE_SURFACE_FLAG[count];
 	forcex = new REAL[count];
 	forcey = new REAL[count];
 	forcez = new REAL[count];
-	rho = new REAL[count];
+	
 	mass = new REAL[count];
 	massex = new REAL[count];
 	phi = new REAL[count];
 	islet = new	int[count];
-	u = new float3[count];
 
-	cutcell = new int[27 * count] {};
-	interp = new int[27 * count] {};
-	u_interp = new float3[count]{ {-1.f,-1.f,-1.f} };
+	rho = new REAL[count];
+	u = new float3[count];
 
 	// initialization for the bubble
 	tag_matrix = new int[count];
 	delta_phi = new float[count];
 	previous_tag = new int[count];
 	previous_merge_tag = new int[count];
-	// tmp variable
+
 	input_matrix = new unsigned char[count];
 	label_matrix = new int[count];
-	// view_label_matrix = new int[count];
+
 	merge_detector = new bool[count];
 	merge_flag = false;
 	split_flag = false;
@@ -222,7 +194,7 @@ inline void mrFlow3D::Create(
 	c_value = new float[count] {};
 	src = new float[count] {};
 
-	// count number; xyz; other initialization
+	// initialization for variables
 	for (long z = 0; z < sample_z_count; z++)
 	{
 		for (long y = 0; y < sample_y_count; y++)
@@ -231,35 +203,33 @@ inline void mrFlow3D::Create(
 			{
 				long num = z * sample_y_count * sample_x_count + y * sample_x_count + x;
 				flag[num] = TYPE_G;
-				postflag[num] = TYPE_G;
 				forcex[num] = 0.f;
 				forcey[num] = 0.f;
 				forcez[num] = 0.f;
-				rho[num] = 1.f;
+				
 				mass[num] = 0.f;
 				massex[num] = 0.f;
 				phi[num] = 0.f;
-				u[num].x = 0.f;
-				u[num].y = 0.f;
-				u[num].z = 0.f;
+
+				delta_phi[num] = 0.f;
+				delta_g[num] = 0.f;
+				c_value[num] = 0.f;
+				src[num] = 0.f;
+				disjoin_force[num] = 0.f;
+
 				islet[num] = 0;
 				tag_matrix[num] = -1;
 				previous_tag[num] = -1;
 				previous_merge_tag[num] = -1;
 				input_matrix[num] = 0;
 				label_matrix[num] = 0;
-				// view_label_matrix[num] = 0;
 				merge_detector[num] = false;
-				for (int j = 0; j < 7; j++)
-				{
-					gMom[num * 7 + j] = 0.f;
-					gMomPost[num * 7 + j] = 0.f;
-				}
-				delta_phi[num] = 0.f;
-				delta_g[num] = 0.f;
-				c_value[num] = 0.f;
-				src[num] = 0.f;
-				disjoin_force[num] = 0.f;
+
+				rho[num] = 1.f;
+				u[num].x = 0.f;
+				u[num].y = 0.f;
+				u[num].z = 0.f;
+
 			}
 		}
 	}

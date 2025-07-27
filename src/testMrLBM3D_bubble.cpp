@@ -4,61 +4,37 @@ int main()
 {
 	mrSolver3D mlsolver;
 	mlsolver.gpuId = 0;
-	mrFlow3D* mlsmoke0 = new mrFlow3D();
-	mrFlow3D* mlsmoke_dev0 = 0;
-
-	std::vector<mrFlow3D*> lbmvec;
-	std::vector<mrFlow3D*> lbmvec_gpu;
-	lbmvec.push_back(mlsmoke0);
-	lbmvec_gpu.push_back(mlsmoke_dev0);
-
-	float scaletime = 1;
-	int nx = 600 * scaletime;
-	int ny = 300 * scaletime;
-	int nz = 300 * scaletime;
-
-
+	mrFlow3D* lbmvec = new mrFlow3D();
+	mrFlow3D* lbmvec_gpu = 0;
+	
+	int nx = 600;
+	int ny = 300;
+	int nz = 300;
 	float uop = 18;
-	/*
-		REAL _uop,
-		REAL _labma,
-		REAL _l0p,
-		REAL _N,
-		REAL _roup
-	*/
-
-	MLMappingParam mparam(uop, 0.3, 10, nx, 1.25);
-	mparam.tp = mparam.labma * mparam.l0p / (mparam.u0p * mparam.N);
-
+	float labma = 0.3;
+	float l0p = 10;
+	float N = 1.25;
 
 	float L = 1;
 	float x0 = 0;
 	float y0 = 0;
 	float z0 = 0;
-	float x1 = nx;
-	float y1 = ny;
-	float dt = 0.02;
-	float gyP = 0.0;
-	float gxP = 0.0;
-	float gzP = -9.8;
 
-	float gyL = -9.8 * (mparam.l0p * mparam.labma * mparam.labma) / (mparam.N * (mparam.u0p * mparam.u0p));
-	std::cout << "gyL:	" << gyL << std::endl;
+	float delta_x = 1;
+	float vis = 1.0e-4;
+	float gy = 0.0;
+
+	MLMappingParam mparam(uop, labma, l0p, nx, N);
+	mparam.tp = mparam.labma * mparam.l0p / (mparam.u0p * mparam.N);
 
 	lbmvec[0]->Create
 	(
-		0, 0, 0,
-		nx, ny, nz, 1,
+		x0, y0, z0,
+		nx, ny, nz, delta_x,
 		nx, ny, nz,
-		1.0e-4, //1 * 1e-6
-		0
+		vis,
+		gy
 	);
-
-	mlsolver.L = L;
-	
-	float scale_rate = (mparam.u0p / mparam.labma) * (mparam.u0p / mparam.labma) *
-		(mparam.l0p / mparam.N) * (mparam.l0p / mparam.N) * 800 * 1;
-	std::cout << "scale_rate:	" << scale_rate << std::endl;
 
 	mlsolver.AttachLbmHost(lbmvec);
 	mlsolver.AttachLbmDevice(lbmvec_gpu);
@@ -69,20 +45,17 @@ int main()
 
 	int numofiteration = 0;
 	int numofframe = 0;
-	int upw = nx * 1;
-	int uph = nz * 1;
 	int interationNum = mparam.u0p * mparam.N / (mparam.labma * mparam.l0p * 30);
-
 	std::cout << "interationNum:	" << interationNum << std::endl;
 
-	clock_t start, end;
-	mlsolver.istwoway = true;
-	start = clock();
 	mlsolver.mlInitGpu();
 	for (int i = 0; i < (int)lbmvec.size(); i++)
 	{
 		mlsolver.mlTransData2Host(i);
 	}
+
+	int upw = nx;
+	int uph = nz;
 	mlsolver.mlSavePhi(upw, uph, lbmvec.size(), numofframe);
 	mlsolver.mlVisVelocitySlice(upw, uph, lbmvec.size(), numofframe);
 	mlsolver.mlVisMassSlice(upw, uph, lbmvec.size(), numofframe);
@@ -99,16 +72,12 @@ int main()
 		{
 			mlsolver.mlTransData2Host(i);
 		}
-		printf("draw vel\n");
 		mlsolver.mlVisVelocitySlice(upw, uph, lbmvec.size(), numofframe);
-		printf("draw mass\n");
 		mlsolver.mlVisMassSlice(upw, uph, lbmvec.size(), numofframe);
 		mlsolver.mlSavePhi(upw, uph, lbmvec.size(), numofframe);
 		std::cout << "numofiteration: " << numofiteration++ << std::endl;
 		numofframe++;
 	}
-	end = clock();
 
-	std::cout << "time:	" << (double)(end - start) / CLOCKS_PER_SEC;
 	return 0;
 }

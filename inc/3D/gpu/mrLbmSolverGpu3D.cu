@@ -7,8 +7,13 @@
 #include <thrust/sort.h>
 #include <thrust/unique.h>
 #include <thrust/host_vector.h>
-
 #include "tDCCL.cuh"
+
+
+__device__ static double atomicExch(double *address, double val)
+{
+  return __longlong_as_double(atomicExch((unsigned long long int *) address, __double_as_longlong(val)));
+}
 
 __global__ void surface_1(
 	mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num, int total_num)
@@ -17,7 +22,6 @@ __global__ void surface_1(
 	int y = threadIdx.y + blockDim.y * blockIdx.y;
 	int z = threadIdx.z + blockDim.z * blockIdx.z;
 	int curind = z * sample_num + y * sample_x + x;
-	mrUtilFuncGpu3D mrutilfunc;
 	if (
 		(x >= 0 && x <= sample_x - 1) &&
 		(y >= 0 && y <= sample_y - 1) &&
@@ -35,7 +39,6 @@ __global__ void surface_1(
 				int x1 = x - dx;
 				int y1 = y - dy;
 				int z1 = z - dz;
-
 				int ind_back = z1 * sample_num + y1 * sample_x + x1;
 				const unsigned char flagsji = mlflow[0].flag[ind_back];
 				const unsigned char flagsji_su = flagsji & (TYPE_SU | TYPE_S); // extract SURFACE flags
@@ -54,6 +57,7 @@ __global__ void surface_2(
 	int x = threadIdx.x + blockDim.x * blockIdx.x;
 	int y = threadIdx.y + blockDim.y * blockIdx.y;
 	int z = threadIdx.z + blockDim.z * blockIdx.z;
+	mrUtilFuncGpu3D mrutilfunc;
 	int curind = z * sample_num + y * sample_x + x;
 	if (
 		(x >= 0 && x <= sample_x - 1) &&
@@ -62,12 +66,11 @@ __global__ void surface_2(
 		)
 	{
 		const unsigned char flagsn_sus = mlflow[0].flag[curind] & (TYPE_SU | TYPE_S); // extract SURFACE flags
-		mrUtilFuncGpu3D mrutilfunc;
 		if (flagsn_sus == TYPE_GI) { // initialize the fi of gas cells that should become interface
 			float rhon, uxn, uyn, uzn; // average over all fluid/interface neighbors
-			// mrutilfunc.average_neighbors_non_gas(n, rho, u, flags, &rhon, &uxn, &uyn, &uzn); // get average rho/u from all fluid/interface neighbors
 			float rhot = 0.0f, uxt = 0.0f, uyt = 0.0f, uzt = 0.0f, counter = 0.0f; // average over all fluid/interface neighbors
 			float rho_gt = 0.f, c_k = 0.f;
+			
 			for (int i = 1; i < 27; i++)
 			{
 				int dx = int(ex3d_gpu[i]);
@@ -76,18 +79,14 @@ __global__ void surface_2(
 				int x1 = x - dx;
 				int y1 = y - dy;
 				int z1 = z - dz;
-
-
 				int ind_back = z1 * sample_num + y1 * sample_x + x1;
 				const unsigned char flagsji_sus = mlflow[0].flag[ind_back] & (TYPE_SU | TYPE_S); // extract SURFACE flags
-
 				if (flagsji_sus == TYPE_F || flagsji_sus == TYPE_I || flagsji_sus == TYPE_IF) { // fluid or interface or (interface->fluid) neighbor
 					counter += 1.0f;
-					rhot += mlflow[0].rho[ind_back];
-					uxt += mlflow[0].u[ind_back].x;
-					uyt += mlflow[0].u[ind_back].y;
-					uzt += mlflow[0].u[ind_back].z;
-
+					rhot += mlflow[0].fMomPost[ind_back + 0 * total_num];
+					uxt += mlflow[0].fMomPost[ind_back + 1 * total_num];
+					uyt += mlflow[0].fMomPost[ind_back + 2 * total_num];
+					uzt += mlflow[0].fMomPost[ind_back + 3 * total_num];
 					if (i < 7)
 					{
 						rho_gt += mlflow[0].c_value[ind_back];
@@ -99,27 +98,16 @@ __global__ void surface_2(
 			uxn = counter > 0.0f ? uxt / counter : 0.0f;
 			uyn = counter > 0.0f ? uyt / counter : 0.0f;
 			uzn = counter > 0.0f ? uzt / counter : 0.0f;
-			// need to fix the avg
 
 			rho_gt = c_k > 0.0f ? rho_gt / c_k : 0.0f;
-
+			
 			float feq[27];
-
-			float3 u_2{ uxn,uyn,uzn };
-			u_2 = normalizing_clamp(u_2, 0.4);
-			uxn = u_2.x;
-			uyn = u_2.y;
-			uzn = u_2.z;
-
 			mrutilfunc.calculate_f_eq(rhon, uxn, uyn, uzn, feq); // calculate equilibrium DDFs
-
 			for (int i = 0; i < 27; i++)
 			{
 				feq[i] += w3d_gpu[i];
 			}
-
 			float invRho = 1.0 / rhon;
-
 			float pixx = ((feq[1] + feq[2] + feq[7] + feq[8] + feq[9] + feq[10] + feq[13] + feq[14] + feq[15] + feq[16] + feq[19] + feq[20] + feq[21] + feq[22] + feq[23] + feq[24] + feq[25] + feq[26]));
 			float pixy = (((feq[7] + feq[8] + feq[19] + feq[20] + feq[21] + feq[22]) - (feq[13] + feq[14] + feq[23] + feq[24] + feq[25] + feq[26])));
 			float pixz = (((feq[9] + feq[10] + feq[19] + feq[20] + feq[23] + feq[24]) - (feq[15] + feq[16] + feq[21] + feq[22] + feq[25] + feq[26])));
@@ -127,12 +115,12 @@ __global__ void surface_2(
 			float piyz = (((feq[11] + feq[12] + feq[19] + feq[20] + feq[25] + feq[26]) - (feq[17] + feq[18] + feq[21] + feq[22] + feq[23] + feq[24])));
 			float pizz = ((feq[5] + feq[6] + feq[9] + feq[10] + feq[11] + feq[12] + feq[15] + feq[16] + feq[17] + feq[18] + feq[19] + feq[20] + feq[21] + feq[22] + feq[23] + feq[24] + feq[25] + feq[26]));
 
-			pixx = 1 * (pixx * invRho - cs2);
-			pixy = 1 * (pixy * invRho);
-			pixz = 1 * (pixz * invRho);
-			piyy = 1 * (piyy * invRho - cs2);
-			piyz = 1 * (piyz * invRho);
-			pizz = 1 * (pizz * invRho - cs2);
+			pixx = pixx * invRho - cs2;
+			pixy = pixy * invRho;
+			pixz = pixz * invRho;
+			piyy = piyy * invRho - cs2;
+			piyz = piyz * invRho;
+			pizz = pizz * invRho - cs2;
 
 			mlflow[0].fMomPost[curind + 0 * total_num] = rhon;
 			mlflow[0].fMomPost[curind + 1 * total_num] = uxn;
@@ -144,16 +132,11 @@ __global__ void surface_2(
 			mlflow[0].fMomPost[curind + 7 * total_num] = piyy;
 			mlflow[0].fMomPost[curind + 8 * total_num] = piyz;
 			mlflow[0].fMomPost[curind + 9 * total_num] = pizz;
-			/*for (int i = 0; i < 27; i++)
-				mlflow[0].fMomPost[curind + i * total_num] = feq[i];*/
 
-			mlflow[0].rho[curind] = rhon;
-			mlflow[0].u[curind].x = uxn;
-			mlflow[0].u[curind].y = uyn;
-			mlflow[0].u[curind].z = uzn;
+			//recontruction for g
 			mlflow[0].c_value[curind] = rho_gt;
 			float geq[7];
-			mrutilfunc.calculate_g_eq(rho_gt, uxn, uyn, uzn, geq); // calculate equilibrium DDFs
+			mrutilfunc.calculate_g_eq(rho_gt, uxn, uyn, uzn, geq); 
 			for (int i = 0; i < 7; i++)
 				mlflow[0].gMom[curind + i * total_num] = geq[i];
 
@@ -167,11 +150,9 @@ __global__ void surface_2(
 				int x1 = x - dx;
 				int y1 = y - dy;
 				int z1 = z - dz;
-
 				int ind_back = z1 * sample_num + y1 * sample_x + x1;
 
 				const unsigned char flagsji = mlflow[0].flag[ind_back];
-
 				const unsigned char flagsji_su = flagsji & (TYPE_SU | TYPE_S); // extract SURFACE flags
 				const unsigned char flagsji_r = flagsji & (~TYPE_SU); // extract all non-SURFACE flags
 
@@ -179,7 +160,6 @@ __global__ void surface_2(
 				if (mlflow[0].islet[ind_back] == 0)
 				{
 					mlflow[0].flag[ind_back] = (MLLATTICENODE_SURFACE_FLAG)(flagsji_r | TYPE_I); // prevent fluid or interface neighbors that turn to fluid from being/becoming fluid
-					//reportLiquidToInterfaceConversion(mlflow, x1, y1, sample_x, sample_y); // report liquid->interface conversion
 					mlflow[0].merge_detector[ind_back] = 1;
 				}
 				else
@@ -192,11 +172,6 @@ __global__ void surface_2(
 
 		}
 	}
-}
-
-__device__ static double atomicExch(double *address, double val)
-{
-  return __longlong_as_double(atomicExch((unsigned long long int *) address, __double_as_longlong(val)));
 }
 
 
@@ -385,47 +360,6 @@ __global__ void surface_3(
 }
 
 
-
-__global__ void print_top4_bubbles(mrFlow3D* mlflow, int time)
-{
-	if (threadIdx.x == 0 && blockIdx.x == 0) {
-		// 数组用于存储前 4 大的体积及其索引
-		float top_volumes[4] = { 0.f, 0.f, 0.f, 0.f };
-		int top_indices[4] = { -1, -1, -1, -1 };
-
-		// 遍历所有气泡
-		for (int i = 0; i < mlflow[0].bubble.bubble_count; i++) {
-			float current_volume = mlflow[0].bubble.volume[i];
-
-			// 检查当前体积是否大于 top_volumes 中的最小值
-			for (int j = 0; j < 4; j++) {
-				if (current_volume > top_volumes[j]) {
-					// 将当前值插入到正确的位置，并将其他值后移
-					for (int k = 3; k > j; k--) {
-						top_volumes[k] = top_volumes[k - 1];
-						top_indices[k] = top_indices[k - 1];
-					}
-					top_volumes[j] = current_volume;
-					top_indices[j] = i;
-					break;
-				}
-			}
-		}
-
-		// 打印前 4 大的气泡信息
-		for (int i = 0; i < 4; i++) {
-			if (top_indices[i] != -1) {
-				printf("time %d, max %d Bubble %d: volume = %f, init volume = %f, rho = %f\n", time,
-					i,
-					top_indices[i],
-					top_volumes[i],
-					mlflow[0].bubble.init_volume[top_indices[i]],
-					mlflow[0].bubble.rho[top_indices[i]]);
-			}
-		}
-	}
-}
-
 // fix the flag as the FLUID3X
 __global__ void stream_collide_bvh(
 	mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num, int total_num, float N, float l0p, float roup, float labma,
@@ -446,9 +380,6 @@ __global__ void stream_collide_bvh(
 	{
 		const unsigned char flagsn = mlflow[0].flag[curind]; // cache flags[n] for multiple readings
 		const unsigned char flagsn_bo = flagsn & TYPE_BO, flagsn_su = flagsn & TYPE_SU; // extract boundary and surface flags
-
-		//if (time > 200)
-		//	mlflow[0].forcez[curind] = -2e-5;
 
 		for (int i = 0; i < 27; i++)
 		{
@@ -477,19 +408,6 @@ __global__ void stream_collide_bvh(
 		float fhn[27]{};
 		float fon[27]{};
 
-		float maprate = l0p / N;
-
-		mlVector3f curpt(
-			x * mlflow[0].param->delta_x + mlflow[0].param->start_pt.x,
-			y * mlflow[0].param->delta_x + mlflow[0].param->start_pt.y,
-			z * mlflow[0].param->delta_x + mlflow[0].param->start_pt.z);
-
-		mlVector3f v
-		(
-			float(curpt[0]) * maprate,
-			float(curpt[1]) * maprate,
-			float(curpt[2]) * maprate
-		);
 
 		float rhoVar_cur = mlflow[0].fMom[curind + total_num * 0];
 		float ux_cur = mlflow[0].fMom[curind + total_num * 1];
@@ -501,7 +419,6 @@ __global__ void stream_collide_bvh(
 		float piyy_cur = mlflow[0].fMom[curind + total_num * 7];
 		float piyz_cur = mlflow[0].fMom[curind + total_num * 8];
 		float pizz_cur = mlflow[0].fMom[curind + total_num * 9];
-
 
 
 		for (int i = 0; i < 27; i++)
@@ -587,7 +504,6 @@ __global__ void stream_collide_bvh(
 			fon[i] -= w3d_gpu[i];
 		}
 
-
 		float massn = mlflow[0].mass[curind];
 
 		for (int i = 1; i < 27; i++)
@@ -645,10 +561,9 @@ __global__ void stream_collide_bvh(
 
 			}
 			float rhon = 0.0f, uxn = 0.0f, uyn = 0.0f, uzn = 0.0f, rho_laplace = 0.0f; // no surface tension if rho_laplace is not overwritten later
-			//mrutilfunc.calculate_rho_u(fon, rhon, uxn, uyn, uzn);
 
+			//no rho, u, phi
 			rhon = mlflow[0].fMom[curind + total_num * 0];
-
 			uxn = mlflow[0].fMom[curind + total_num * 1];
 			uyn = mlflow[0].fMom[curind + total_num * 2];
 			uzn = mlflow[0].fMom[curind + total_num * 3];
@@ -1388,10 +1303,6 @@ void MomSwap3D(MLLATTICENODE_SURFACE_FLAG*& pt1, MLLATTICENODE_SURFACE_FLAG*& pt
 	pt2 = temp;
 }
 
-__global__ void update_solid_flag(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num)
-{
-	MomSwap3D(mlflow[0].flag, mlflow[0].postflag);
-}
 
 __host__ __device__
 void MomSwap(REAL*& pt1, REAL*& pt2) {
