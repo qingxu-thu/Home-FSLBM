@@ -199,68 +199,6 @@ namespace {
                     }
                 }
             }
-
-
-            /* {
-             if (img[img_index]) {
-                 P |= P0;
-                 foreground |= 1;
-             }
-
-             if (x + 1 < img.x) {
-
-                 if (img[img_index + 1]) {
-                     P |= (P0 << 1);
-                     foreground |= (1 << 1);
-                 }
-
-                 if (y + 1 < img.y && img[img_index + img.stepy / img.elem_size + 1]) {
-                     P |= (P0 << 5);
-                     foreground |= (1 << 3);
-                 }
-
-             }
-
-             if (y + 1 < img.y) {
-
-                 if (img[img_index + img.stepy / img.elem_size]) {
-                     P |= (P0 << 4);
-                     foreground |= (1 << 2);
-                 }
-
-             }
-
-             if (z + 1 < img.z) {
-                 if (img[img_index + img.stepz / img.elem_size]) {
-                     P |= (P0 << 16);
-                     foreground |= (1 << 4);
-                 }
-
-                 if (x + 1 < img.x) {
-
-                     if (img[img_index + img.stepz / img.elem_size + 1]) {
-                         P |= (P0 << 17);
-                         foreground |= (1 << 5);
-                     }
-
-                     if (y + 1 < img.y && img[img_index + img.stepz / img.elem_size + img.stepy / img.elem_size + 1]) {
-                         P |= (P0 << 21);
-                         foreground |= (1 << 7);
-                     }
-
-                 }
-
-                 if (y + 1 < img.y) {
-
-                     if (img[img_index + img.stepz / img.elem_size + img.stepy / img.elem_size]) {
-                         P |= (P0 << 20);
-                         foreground |= (1 << 6);
-                     }
-
-                 }
-             }
-         }*/
-
          // Store foreground voxels bitmask into memory
             if (x + 1 < labels.x) {
                 labels[labels_index + 1] = foreground;
@@ -304,9 +242,6 @@ namespace {
             if (z + 1 >= img.z) {
                 P &= 0x00000000FFFFFFFF;
             }
-            //else if (z + 2 >= img.z) {
-            //    P &= 0x0000FFFFFFFFFFFF;
-            //}
 
             // P is now ready to be used to find neighbour blocks
             // P value avoids range errors
@@ -462,11 +397,7 @@ namespace {
 
 }
 
-
-
-// still need to be updated
 __global__ void device_upload(mrFlow3D* mlflow, int* d_img_labels, unsigned char* d_imgs, int sample_x, int sample_y, int sample_z) {
-    // 将 mlflow[0].label_matrix 的指针赋值给 d_img_labels
     int x = threadIdx.x + blockDim.x * blockIdx.x;
     int y = threadIdx.y + blockDim.y * blockIdx.y;
     int z = threadIdx.z + blockDim.z * blockIdx.z;
@@ -478,16 +409,12 @@ __global__ void device_upload(mrFlow3D* mlflow, int* d_img_labels, unsigned char
         )
     {
         d_img_labels[curind] = mlflow[0].label_matrix[curind];
-       /* if (d_img_labels[curind] != 0 )
-            printf("curind %d, label  %d\n", curind, d_img_labels[curind]);*/
         d_imgs[curind] = mlflow[0].input_matrix[curind];
     }
 }
 
 
-// still need to be downloaded
 __global__ void device_download(mrFlow3D* mlflow, cv::cuda::PtrStepSz3i d_img_labels, cv::cuda::PtrStepSz3b d_imgs, int sample_x, int sample_y, int sample_z) {
-    // 将 mlflow[0].label_matrix 的指针赋值给 d_img_labels
     int x = threadIdx.x + blockDim.x * blockIdx.x;
     int y = threadIdx.y + blockDim.y * blockIdx.y;
     int z = threadIdx.z + blockDim.z * blockIdx.z;
@@ -498,8 +425,6 @@ __global__ void device_download(mrFlow3D* mlflow, cv::cuda::PtrStepSz3i d_img_la
         (z >= 0 && z <= sample_z - 1)
         )
     {
-        //if (d_img_labels.data[curind]!=0&& d_img_labels.data[curind]!=10640001)
-        //    printf("curind %d, label  %d\n", curind, d_img_labels.data[curind]);
         mlflow[0].label_matrix[curind] = d_img_labels.data[curind];
 		mlflow[0].input_matrix[curind] = d_imgs.data[curind];
     }
@@ -523,8 +448,6 @@ __global__ void renumber_1(int sample_x,int sample_y, int sample_z, int bubble_c
     int y = threadIdx.y + blockDim.y * blockIdx.y;
     int z = threadIdx.z + blockDim.z * blockIdx.z;
     int curind = z * sample_x * sample_y + y * sample_x + x;
-
-    // unsigned int* g_labels = mlflow[0].label_matrix;
     if (curind < bubble_count) {
         if (curind > 0)
         {
@@ -546,7 +469,6 @@ __global__ void renumber_2(mrFlow3D* mlflow,
         if (g_labels[curind] > 0)
         {
             g_labels[curind] = d_label.data[g_labels[curind] - 1];
-            //  printf("g_labels: %d\n",g_labels[curind]);
         }
     }
 }
@@ -554,15 +476,9 @@ __global__ void renumber_2(mrFlow3D* mlflow,
 
 void PerformLabeling(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z) {
     
-    //d_img_labels_.create(sample_x, sample_y, sample_z, CV_32SC1);
-    // need to fill the value
-	//
-    //int* d_img_labels = mlflow[0].label_matrix;
-	//unsigned char* d_imgs = mlflow[0].input_matrix;
+    int* d_img_labels; 
 
-    int* d_img_labels;  // 设备上的 label_matrix
-
-    unsigned char* d_imgs;    // 临时设备指针
+    unsigned char* d_imgs; 
     int total_num = sample_x * sample_y * sample_z;
     cudaMalloc(&d_imgs, total_num * sizeof(unsigned char*));
     cudaMalloc(&d_img_labels, total_num * sizeof(int));
@@ -577,26 +493,20 @@ void PerformLabeling(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z)
         ceil(float(sample_z) / threads1.z)
     );
 
-
+    // upload the data to the opencv format
     device_upload << <grid1, threads1 >> > (mlflow, d_img_labels, d_imgs,sample_x,sample_y,sample_z);
-
-    //printf("ccl 0\n");
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
+    // prepare the data for the algorithm
 	size_t stepy_ = sizeof(int) * static_cast<size_t>(sample_x);
     size_t stepz_ = stepy_ * static_cast<size_t>(sample_y);
-    //printf("ccl 0\n");
-    // need to verify zyx or xyz for the algorithm (looks like)
     cv::cuda::PtrStepSz3i d_img_labels_(sample_x, sample_y, sample_z, d_img_labels, stepy_, stepz_);
-    //printf("ccl 01\n");
     size_t stepy_2 = sizeof(unsigned char) * static_cast<size_t>(sample_x);
     size_t stepz_2 = stepy_2 * static_cast<size_t>(sample_y);
-
     cv::cuda::PtrStepSz3b d_img_(sample_x, sample_y, sample_z, d_imgs, stepy_2, stepz_2);
     unsigned char* last_cube_fg_;
     bool allocated_last_cude_fg_ = false;
-    //printf("ccl 02\n");
     if ((sample_x % 2 == 1) && (sample_y % 2 == 1) && (sample_z % 2 == 1)) {
         if (sample_x > 1 && sample_y > 1) {
             last_cube_fg_ = reinterpret_cast<unsigned char*>(d_img_labels_.data + (sample_z - 1) * d_img_labels_.stepz + (sample_y - 2) * d_img_labels_.stepy) + sample_x - 2;
@@ -612,59 +522,42 @@ void PerformLabeling(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z)
             allocated_last_cude_fg_ = true;
         }
     }
-    //printf("ccl 1\n");
     dim3 grid_size_ = dim3(((sample_x + 1) / 2 + BLOCK_X - 1) / BLOCK_X, ((sample_y + 1) / 2 + BLOCK_Y - 1) / BLOCK_Y, ((sample_z + 1) / 2 + BLOCK_Z - 1) / BLOCK_Z);
     dim3 block_size_ = dim3(BLOCK_X, BLOCK_Y, BLOCK_Z);
 
+    // start CCL
     InitLabeling << <grid_size_, block_size_ >> > (d_img_labels_);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
-
-    //printf("ccl 2\n");
-    //cuda::GpuMat d_expanded_connections;
-    //d_expanded_connections.create(d_connections_.rows * 3, d_connections_.cols * 3, CV_8UC1);
-    //ExpandConnections << <grid_size_, block_size_ >> > (d_connections_, d_expanded_connections);
-    //Mat1b expanded_connections;
-    //d_expanded_connections.download(expanded_connections);
-    //d_expanded_connections.release();
-
-    //Mat1i init_labels;
-    //d_block_labels_.download(init_labels);
 
     Merge << <grid_size_, block_size_ >> > (d_img_, d_img_labels_, last_cube_fg_);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
-    //printf("ccl 3\n");
-    //Mat1i block_info_final;
-    //d_img_labels_.download(block_info_final);		
-
     PathCompression << <grid_size_, block_size_ >> > (d_img_labels_);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
-    //printf("ccl 4\n");
     FinalLabeling << <grid_size_, block_size_ >> > (d_img_, d_img_labels_, last_cube_fg_);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
-    //printf("ccl 5\n");
     if (allocated_last_cude_fg_) {
         cudaFree(last_cube_fg_);
     }
 
-
+    // download the data to the mlflow
     device_download << <grid1, threads1 >> > (mlflow, d_img_labels_, d_img_, sample_x, sample_y, sample_z);
+
+    // renumber the label
     renumber_0 << <grid1, threads1 >> > (sample_x, sample_y, sample_z, d_ptr_1, d_img_labels_);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
-
     thrust::sort(d_bubble_map.begin(), d_bubble_map.end());
     thrust::device_vector<int>::iterator new_end;
     new_end = thrust::unique(d_bubble_map.begin(), d_bubble_map.end());
     d_bubble_map.erase(new_end, d_bubble_map.end());
     int* d_ptr_2 = thrust::raw_pointer_cast(d_bubble_map.data());
-
     if (d_bubble_map.size() > 1)
     {
         renumber_1 << <grid1, threads1 >> > (sample_x, sample_y, sample_z, d_bubble_map.size(), d_ptr_2, d_img_labels_);
@@ -674,16 +567,12 @@ void PerformLabeling(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z)
         checkCudaErrors(cudaGetLastError());
         checkCudaErrors(cudaDeviceSynchronize());
     }
-	
-    // d_img_labels_.download(img_labels_);
     cudaDeviceSynchronize();
     cudaFree(d_img_labels);
     cudaFree(d_imgs);
-
 }
 
 void connectedComponentLabeling(mrFlow3D* mlflow, int numCols, int numRows, int numDepths)
 {
-    //printf("ccl 0ss\n");
     PerformLabeling(mlflow, numCols, numRows, numDepths);
 }

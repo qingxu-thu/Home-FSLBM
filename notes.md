@@ -19,3 +19,16 @@ Some issues:
 
 Record 2025/07/26
 1. decide to change the flag type? (MLLATTICENODE_SURFACE_FLAG -> unsigned char)
+
+Record 2025/07/27
+1. I delete the rho and u usage
+2. clear non-used some parts in bubbles accounting
+3. add some notion and change the layout
+
+Record 2025/07/30:
+1. I fix some small error in 3D
+2. Fix the cpu part in 2D without rho/u remove
+3. half of the FS part in 2D
+4. fix bubble and g in 2D
+5. fix some small error in 3D
+6. fix all the variable non-used in 2D

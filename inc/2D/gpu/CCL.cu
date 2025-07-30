@@ -79,17 +79,7 @@ void connectedComponentLabeling(mrFlow2D* mlflow, size_t numCols, size_t numRows
 
 
 	thrust::device_vector<unsigned int> d_bubble_map(numPixels);
-	//unsigned int* d_bubble_map;
-	//cudaMalloc(&d_bubble_map, numPixels * sizeof(int));
-	//cudaMemset(d_labels, 0, numPixels * sizeof(int));
-
 	unsigned int *d_ptr = thrust::raw_pointer_cast(d_bubble_map.data());
-
-	//unsigned int h_tmp = 0;
-	//unsigned int* d_tmp;
-	//// �����豸�ڴ�
-	//cudaMalloc(&d_tmp, sizeof(int));
-	//cudaMemcpy(d_tmp, &h_tmp, sizeof(int), cudaMemcpyHostToDevice);
 
 	renumber_0 << <grid, block >> > (mlflow, numCols, numRows, d_ptr, d_labels);
 	checkCudaErrors(cudaGetLastError());
@@ -110,9 +100,7 @@ void connectedComponentLabeling(mrFlow2D* mlflow, size_t numCols, size_t numRows
 		checkCudaErrors(cudaGetLastError());
 		checkCudaErrors(cudaDeviceSynchronize());
 	}
-	//cudaFree(d_tmp);
 	cudaFree(d_labels);
-	//cudaFree(d_bubble_map);
 
 }
 
@@ -226,10 +214,6 @@ __global__ void resolve_background(mrFlow2D* mlflow,
 	const unsigned char* g_image = mlflow[0].input_matrix;
 	if(id < numRows*numCols){
 		g_labels[id] = ((int) g_image[id] > 0) ? g_labels[id]+1 : 0;
-		//if ((int) id >= (399 - 97) * 400 + 2 && (int)id <= (399 - 97) * 400 + 7)
-		//{
-		//	printf("id %d g_label[id] %d,g_image[id] %d\n", id, g_labels[id], g_image[id]);
-		//}
 	}
 }
 
@@ -243,9 +227,7 @@ __global__ void renumber_0(mrFlow2D* mlflow,
 	unsigned int* g_labels = mlflow[0].label_matrix;
 	if (id < numRows * numCols) {
 		if (g_labels[id] == id + 1) {
-			// atomicAdd(bubble_count, 1);
 			d_bubble_map[id] = id + 1;
-			//printf("bubble_count: %d\n", *bubble_count);
 		}
 		else
 		{
@@ -260,13 +242,10 @@ __global__ void renumber_1(mrFlow2D* mlflow,
 	const unsigned int id = ((blockIdx.y * blockDim.y) + threadIdx.y) * numCols +
 		((blockIdx.x * blockDim.x) + threadIdx.x);
 
-	// unsigned int* g_labels = mlflow[0].label_matrix;
 	if (id < bubble_count) {
 		if (id > 0)
 		{
-			//printf("id %d d_bubble_map: %d\n", id, d_bubble_map[id]);
 			d_label[d_bubble_map[id] - 1] = id;
-			// printf("d_label: %d\n", id);
 		}
 	}
 }
@@ -281,7 +260,6 @@ __global__ void renumber_2(mrFlow2D* mlflow,
 		if (g_labels[id] > 0)
 		{
 			g_labels[id] = d_label[g_labels[id] - 1];
-			// printf("g_labels: %d\n",g_labels[id]);
 		}
 	}
 		

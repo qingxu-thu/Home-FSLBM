@@ -27,12 +27,12 @@ public:
 	void mlTransData2Gpu();
 	void mlInitGpu();
 	void mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev);
-	void mlVisVelocitySlice(long upw, long uph, int scaleNum, int frame);
+	void mlVisVelocitySlice(long upw, long uph, int frame);
 	void mlSavePPM(const char* filename, float* data, int mWidth, int mHeight);
 	void mlTransResultantFandT2Host();
 	void mlIterateCouplingGpu(int timestep);
-	void mlVisForceSlice(long upw, long uph, int scaleNum, int frame);
-	void mlSavePhi(long upw, long uph, int scaleNum, int frame);
+	void mlVisForceSlice(long upw, long uph, int frame);
+	void mlSavePhi(long upw, long uph, int frame);
 public:
 
 	mrFlow3D* lbmvec;
@@ -136,8 +136,6 @@ inline void mrSolver3D::mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev)
 	float* forcey_dev;
 	float* forcez_dev;
 
-	float3* u_dev;
-	float* rho_dev;
 	float* mass_dev;
 	float* massex_dev;
 	float* phi_dev;
@@ -186,11 +184,9 @@ inline void mrSolver3D::mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev)
 	checkCudaErrors(cudaMalloc(&forcex_dev, mllbm_host->count * sizeof(REAL)));
 	checkCudaErrors(cudaMalloc(&forcey_dev, mllbm_host->count * sizeof(REAL)));
 	checkCudaErrors(cudaMalloc(&forcez_dev, mllbm_host->count * sizeof(REAL)));
-	checkCudaErrors(cudaMalloc(&rho_dev, mllbm_host->count * sizeof(REAL)));
 	checkCudaErrors(cudaMalloc(&mass_dev, mllbm_host->count * sizeof(REAL)));
 	checkCudaErrors(cudaMalloc(&massex_dev, mllbm_host->count * sizeof(REAL)));
 	checkCudaErrors(cudaMalloc(&phi_dev, mllbm_host->count * sizeof(REAL)));
-	checkCudaErrors(cudaMalloc(&u_dev, mllbm_host->count * sizeof(float3)));
 
 
 	checkCudaErrors(cudaMalloc(&tag_matrix_dev, mllbm_host->count * sizeof(int)));
@@ -233,11 +229,9 @@ inline void mrSolver3D::mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev)
 	checkCudaErrors(_MLCuMemcpy(forcex_dev, mllbm_host->forcex, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(forcey_dev, mllbm_host->forcey, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(forcez_dev, mllbm_host->forcez, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
-	checkCudaErrors(_MLCuMemcpy(rho_dev, mllbm_host->rho, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(mass_dev, mllbm_host->mass, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(massex_dev, mllbm_host->massex, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(phi_dev, mllbm_host->phi, mllbm_host->count * sizeof(REAL), cudaMemcpyHostToDevice));
-	checkCudaErrors(_MLCuMemcpy(u_dev, mllbm_host->u, mllbm_host->count * sizeof(float3), cudaMemcpyHostToDevice));
 
 	checkCudaErrors(_MLCuMemcpy(tag_matrix_dev, mllbm_host->tag_matrix, mllbm_host->count * sizeof(int), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(previous_tag_dev, mllbm_host->previous_tag, mllbm_host->count * sizeof(int), cudaMemcpyHostToDevice));
@@ -278,11 +272,9 @@ inline void mrSolver3D::mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev)
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->forcex), &forcex_dev, sizeof(forcex_dev), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->forcey), &forcey_dev, sizeof(forcey_dev), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->forcez), &forcez_dev, sizeof(forcez_dev), cudaMemcpyHostToDevice));
-	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->rho), &rho_dev, sizeof(rho_dev), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->mass), &mass_dev, sizeof(mass_dev), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->massex), &massex_dev, sizeof(massex_dev), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->phi), &phi_dev, sizeof(phi_dev), cudaMemcpyHostToDevice));
-	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->u), &u_dev, sizeof(u_dev), cudaMemcpyHostToDevice));
 
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->tag_matrix), &tag_matrix_dev, sizeof(tag_matrix_dev), cudaMemcpyHostToDevice));
 	checkCudaErrors(_MLCuMemcpy(&(mllbm_dev->previous_tag), &previous_tag_dev, sizeof(previous_tag_dev), cudaMemcpyHostToDevice));
@@ -312,7 +304,7 @@ inline void mrSolver3D::mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev)
 #pragma endregion
 }
 
-inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int scaleNum, int frame)
+inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int frame)
 {
 
 	float* cutslice_ve = new float[1 * lbmvec->param->samples.x * lbmvec->param->samples.z];
@@ -446,7 +438,7 @@ inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int scaleNum, int
 
 }
 
-inline void mrSolver3D::mlVisMassSlice(long upw, long uph, int scaleNum, int frame)
+inline void mrSolver3D::mlVisMassSlice(long upw, long uph, int frame)
 {
 	float* cutslice_ve = new float[1 * lbmvec->param->samples.x * lbmvec->param->samples.z];
 	int total_num = lbmvec->param->samples.x * lbmvec->param->samples.y * lbmvec->param->samples.z;
@@ -525,7 +517,7 @@ inline void mrSolver3D::mlVisMassSlice(long upw, long uph, int scaleNum, int fra
 
 
 
-inline void mrSolver3D::mlSavePhi(long upw, long uph, int scaleNum, int frame)
+inline void mrSolver3D::mlSavePhi(long upw, long uph, int frame)
 {
 	char filename[2048];
 	sprintf(filename, "../dataMR3D/ppm_ve_home_test_phi/phi%05d.bin", frame);

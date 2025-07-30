@@ -61,15 +61,11 @@ inline MLFUNC_TYPE int imin(int a, int b)
 
 }
 
-
 inline MLFUNC_TYPE float clamp(float x, float a, float b)
 {
 	return fmin(fmax(x, a), b);
 }
-//inline MLFUNC_TYPE float cbrt(float x)
-//{
-//	return powf(x, 1.0 / 3.0);
-//}
+
 
 inline MLFUNC_TYPE float3 cross(const float3& v1, const float3& v2) {
 	return { v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x };
@@ -320,27 +316,13 @@ inline MLFUNC_TYPE void mrUtilFuncGpu3D::calculate_f_eq(const float rho, float u
 	feq[23] = fma(rhoc, fma(0.5f, fma(u8, u8, c3), u8), rhom1c); feq[24] = fma(rhoc, fma(0.5f, fma(u8, u8, c3), -u8), rhom1c); // +-+ -+-
 	feq[25] = fma(rhoc, fma(0.5f, fma(u9, u9, c3), u9), rhom1c); feq[26] = fma(rhoc, fma(0.5f, fma(u9, u9, c3), -u9), rhom1c); // -++ +--
 
-	//float uznk = 0.0;
-	//float rhok = 0.0;
-	//for (int i = 0; i < 27; i++)
-	//{
-	//	rhok += feq[i];
-	//	//printf("f_eq[%d]: %f\n", i, f_eq[i]);
-	//	uznk += feq[i] * ez3d_gpu[i];
-	//}
-	//uznk /= (rhok + 1.0f);
-	///*if (uzn != uznk)*/
-	//printf("uzn_before: %f, uzn_after: %f, rho_before %f, rho_after %f\n", uz, uznk, rho, rhok);
 
 
 }
 
 inline MLFUNC_TYPE void mrUtilFuncGpu3D::calculate_g_eq(const float rho, float ux, float uy, float  uz, float* feq)
 {
-	// g is updated by the D2Q5
 
-	// const float c3 = -3.0f * (sq(ux) + sq(uy) + sq(uz));
-	// printf("c3: %f\n", c3);
 	const float	rhom1 = rho; // c3 = -2*sq(u)/(2*sq(c)), rhom1 is arithmetic optimization to minimize digit extinction
 	ux *= 4.0f;
 	uy *= 4.0f;
@@ -348,15 +330,12 @@ inline MLFUNC_TYPE void mrUtilFuncGpu3D::calculate_g_eq(const float rho, float u
 
 	feq[0] = d3q7_w[0] * rhom1;
 
-	//const float rhos = d3q7_w[1] * rho, rhom1s = d3q7_w[1] * rhom1;
 	feq[1] = d3q7_w[1] * (1 + (float)ex3d_gpu[1] * ux + (float)ey3d_gpu[1] * uy + (float)ez3d_gpu[1] * uz) * rhom1;
 	feq[2] = d3q7_w[2] * (1 + (float)ex3d_gpu[2] * ux + (float)ey3d_gpu[2] * uy + (float)ez3d_gpu[2] * uz) * rhom1;
 	feq[3] = d3q7_w[3] * (1 + (float)ex3d_gpu[3] * ux + (float)ey3d_gpu[3] * uy + (float)ez3d_gpu[3] * uz) * rhom1;
 	feq[4] = d3q7_w[4] * (1 + (float)ex3d_gpu[4] * ux + (float)ey3d_gpu[4] * uy + (float)ez3d_gpu[4] * uz) * rhom1;
 	feq[5] = d3q7_w[5] * (1 + (float)ex3d_gpu[5] * ux + (float)ey3d_gpu[5] * uy + (float)ez3d_gpu[5] * uz) * rhom1;
 	feq[6] = d3q7_w[6] * (1 + (float)ex3d_gpu[6] * ux + (float)ey3d_gpu[6] * uy + (float)ez3d_gpu[6] * uz) * rhom1;
-
-	//need to change
 }
 
 inline MLFUNC_TYPE void mrUtilFuncGpu3D::calculate_forcing_terms(REAL ux, REAL uy, REAL uz, REAL fx, REAL fy, REAL fz, REAL* Fin)
@@ -379,17 +358,13 @@ inline MLFUNC_TYPE float mrUtilFuncGpu3D::calculate_phi(const float rhon, const 
 inline MLFUNC_TYPE float3 mrUtilFuncGpu3D::calculate_normal(const float* phit)
 {
 	float phij[27];
-	// get_remaining_neighbor_phij(n, phit, phi, phij); // complete neighborhood from whatever velocity set is selected to D3Q27
 	for (int i = 0; i < 27; i++)
 		phij[i] = phit[index3dInv_gpu[i]];
-
-	//const float3 bz = calculate_normal_py(phij); // new coordinate system: bz is normal to surface, bx and by are tangent to surface
 
 	float3 bz;
 	bz.x = 4.0f * (phij[2] - phij[1]) + 2.0f * (phij[8] - phij[7] + phij[10] - phij[9] + phij[14] - phij[13] + phij[16] - phij[15]) + phij[20] - phij[19] + phij[22] - phij[21] + phij[24] - phij[23] + phij[25] - phij[26];
 	bz.y = 4.0f * (phij[4] - phij[3]) + 2.0f * (phij[8] - phij[7] + phij[12] - phij[11] + phij[13] - phij[14] + phij[18] - phij[17]) + phij[20] - phij[19] + phij[22] - phij[21] + phij[23] - phij[24] + phij[26] - phij[25];
 	bz.z = 4.0f * (phij[6] - phij[5]) + 2.0f * (phij[10] - phij[9] + phij[12] - phij[11] + phij[15] - phij[16] + phij[17] - phij[18]) + phij[20] - phij[19] + phij[21] - phij[22] + phij[24] - phij[23] + phij[26] - phij[25];
-	//printf("bz.x: %f, bz.y: %f, bz.z: %f\n", bz.x, bz.y, bz.z);
 	bz = normalize(bz);
 	return bz;
 }
@@ -397,11 +372,8 @@ inline MLFUNC_TYPE float3 mrUtilFuncGpu3D::calculate_normal(const float* phit)
 inline MLFUNC_TYPE float mrUtilFuncGpu3D::calculate_curvature(const float* phit)
 {
 	float phij[27];
-	// get_remaining_neighbor_phij(n, phit, phi, phij); // complete neighborhood from whatever velocity set is selected to D3Q27
 	for (int i = 0; i < 27; i++)
 		phij[i] = phit[index3dInv_gpu[i]];
-
-	//const float3 bz = calculate_normal_py(phij); // new coordinate system: bz is normal to surface, bx and by are tangent to surface
 
 	float3 bz;
 	bz.x = 4.0f * (phij[2] - phij[1]) + 2.0f * (phij[8] - phij[7] + phij[10] - phij[9] + phij[14] - phij[13] + phij[16] - phij[15]) + phij[20] - phij[19] + phij[22] - phij[21] + phij[24] - phij[23] + phij[25] - phij[26];
@@ -420,7 +392,6 @@ inline MLFUNC_TYPE float mrUtilFuncGpu3D::calculate_curvature(const float* phit)
 
 	for (int i = 1; i < 27; i++) { // iterate over neighbors, no loop unrolling here (50% better perfoemance without loop unrolling)
 		if (phij[i] > 0.0f && phij[i] < 1.0f) { // limit neighbors to interface cells
-			// might be wrong
 			const float3 ei = { (float)ex3d_gpu[i], (float)ey3d_gpu[i], (float)ez3d_gpu[i] }; // assume neighbor normal vector is the same as center normal vector
 			const float offset = plic_cube(phij[i], bz) - center_offset;
 
@@ -441,7 +412,6 @@ inline MLFUNC_TYPE float mrUtilFuncGpu3D::calculate_curvature(const float* phit)
 	for (int i = 1; i < 5; i++) { // use symmetry of matrix to save arithmetic operations
 		for (int j = 0; j < i; j++) M[i * 5 + j] = M[j * 5 + i];
 	}
-	// printf("number: %d\n", number);
 	if (number >= 5) lu_solve(M, x, b, 5, 5);
 	else lu_solve(M, x, b, 5, number); // cannot do loop unrolling here -> slower -> extra if-else to avoid slowdown
 

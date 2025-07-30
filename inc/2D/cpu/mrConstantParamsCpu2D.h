@@ -5,14 +5,7 @@
 #define def_w0 (1.0f/2.25f) // center (0)
 #define def_ws (1.0f/9.0f) // straight (1-4)
 #define def_we (1.0f/36.0f) // edge (5-8)
-#define def_6_sigma 6.0f * 2.5e-7
-
-
-//#define fma(a,b,c) a*b+c
-//#define cb(x) x*x*x
-//#define sq(x) x*x
-//#define cbrt(x) powf(x, 1.0/3.0)
-//#define clamp(x, a, b) fmin(fmax(x, a), b)
+#define def_6_sigma 3e-2
 
 //                          0  1  2  3  4  5  6  7  8  
 const float ex2d_cpu[9] = { 0, 1,-1, 0, 0, 1,-1, 1,-1 };

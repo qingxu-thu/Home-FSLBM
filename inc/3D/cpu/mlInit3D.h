@@ -98,22 +98,20 @@ inline void mrInitHandler3D::mlInitInlet(mrFlow3D* mlflowvec)
 				{
 					if (y>=10&&y<=Ny-10&&z>=250&&z<=255)
 					{
-						mlflowvec->flag[curind] = mlflowvec->postflag[curind] = TYPE_F;
+						mlflowvec->flag[curind] = TYPE_F;
 						mlflowvec->islet[curind] = 1;
-						mlflowvec->rho[curind] = 1.0;
+						mlflowvec->fMom[curind + 0 * total_num] = 1.0;
 						mlflowvec->mass[curind] = 1.0;
 						mlflowvec->massex[curind] = 0.0;
 						mlflowvec->phi[curind] = 1.0;
-						mlflowvec->u[curind].x = 7.5e-2;
-						mlflowvec->u[curind].y = 0.0;
-						mlflowvec->u[curind].z = 0.0;
+						mlflowvec->fMom[curind + 1 * total_num] = 7.5e-2;
+						mlflowvec->fMom[curind + 2 * total_num] = 0.0;
+						mlflowvec->fMom[curind + 3 * total_num] = 0.0;
 						mlflowvec->forcez[curind] = -1e-5;
-						mlflowvec->c_value[curind] = 0e-3f;
+						mlflowvec->c_value[curind] = 0e-7;
 						for (int i = 0; i < 10; i++)
 						{
-							mlflowvec->fMomPost[total_num * i + curind] = mlflowvec->fMom[total_num * i + curind]
-								= 0;
-							mlflowvec->fMomViewer[total_num * i + curind] = 0;
+							mlflowvec->fMomPost[total_num * i + curind] = mlflowvec->fMom[total_num * i + curind];
 						}
 						for (int i = 0; i < 7; i++)
 						{
@@ -145,7 +143,7 @@ inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 				// set the fluid
 				if (mlflowvec->flag[curind] == TYPE_F)
 				{
-					mlflowvec->rho[curind] = 1.0;
+					mlflowvec->fMom[curind + 0 * total_num] = 1.0;
 					mlflowvec->mass[curind] = 1.0;
 					mlflowvec->massex[curind] = 0.0;
 					mlflowvec->phi[curind] = 1.0;
@@ -154,7 +152,7 @@ inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 				}
 				else
 				{
-					mlflowvec->rho[curind] = 1.0;
+					mlflowvec->fMom[curind + 0 * total_num] = 1.0;
 					mlflowvec->mass[curind] = 0.0;
 					mlflowvec->massex[curind] = 0.0;
 					mlflowvec->phi[curind] = 0.0;
@@ -166,27 +164,28 @@ inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 				{
 					if (y>=10&&y<=Ny-10&&(z==249||z==256))
 					{
-						mlflowvec->flag[curind] = mlflowvec->postflag[curind] = TYPE_S;
-						mlflowvec->rho[curind] = 1.0;
+						mlflowvec->flag[curind] = TYPE_S;
+						mlflowvec->fMom[curind + 0 * total_num] = 1.0;
 						mlflowvec->mass[curind] = 0.0;
 						mlflowvec->massex[curind] = 0.0;
 						mlflowvec->phi[curind] = 0.0;
 					}
 					if ((y==9||y==Ny-9)&(z>=249&&z<=256))
 					{
-						mlflowvec->flag[curind] = mlflowvec->postflag[curind] = TYPE_S;
-						mlflowvec->rho[curind] = 1.0;
+						mlflowvec->flag[curind] = TYPE_S;
+						mlflowvec->fMom[curind + 0 * total_num] = 1.0;
 						mlflowvec->mass[curind] = 0.0;
 						mlflowvec->massex[curind] = 0.0;
 						mlflowvec->phi[curind] = 0.0;
 					}
 				}
+				mlflowvec->fMom[curind + 1 * total_num] = 0.0;
+				mlflowvec->fMom[curind + 2 * total_num] = 0.0;
+				mlflowvec->fMom[curind + 3 * total_num] = 0.0;
 
 				for (int i = 0; i < 10; i++)
 				{
-					mlflowvec->fMomPost[total_num * i + curind] = mlflowvec->fMom[total_num * i + curind]
-						= 0;
-					mlflowvec->fMomViewer[total_num * i + curind] = 0;
+					mlflowvec->fMomPost[total_num * i + curind] = mlflowvec->fMom[total_num * i + curind];
 				}
 				for (int i = 0; i < 7; i++)
 				{

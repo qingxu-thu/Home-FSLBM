@@ -43,11 +43,9 @@ public:
 	REAL* forcey;
 	REAL* forcez;
 
-	REAL* rho;
 	REAL* mass;
 	REAL* massex;
 	REAL* phi;
-	float3* u;
 
 	REAL vis_shear;
 
@@ -169,8 +167,6 @@ inline void mrFlow3D::Create(
 	phi = new REAL[count];
 	islet = new	int[count];
 
-	rho = new REAL[count];
-	u = new float3[count];
 
 	// initialization for the bubble
 	tag_matrix = new int[count];

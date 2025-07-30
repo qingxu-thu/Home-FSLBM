@@ -56,9 +56,9 @@ int main()
 
 	int upw = nx;
 	int uph = nz;
-	mlsolver.mlSavePhi(upw, uph, lbmvec.size(), numofframe);
-	mlsolver.mlVisVelocitySlice(upw, uph, lbmvec.size(), numofframe);
-	mlsolver.mlVisMassSlice(upw, uph, lbmvec.size(), numofframe);
+	mlsolver.mlSavePhi(upw, uph, numofframe);
+	mlsolver.mlVisVelocitySlice(upw, uph, numofframe);
+	mlsolver.mlVisMassSlice(upw, uph, numofframe);
 	numofframe++;
 
 	while (numofframe <= 600)
@@ -72,9 +72,9 @@ int main()
 		{
 			mlsolver.mlTransData2Host(i);
 		}
-		mlsolver.mlVisVelocitySlice(upw, uph, lbmvec.size(), numofframe);
-		mlsolver.mlVisMassSlice(upw, uph, lbmvec.size(), numofframe);
-		mlsolver.mlSavePhi(upw, uph, lbmvec.size(), numofframe);
+		mlsolver.mlVisVelocitySlice(upw, uph, numofframe);
+		mlsolver.mlVisMassSlice(upw, uph, numofframe);
+		mlsolver.mlSavePhi(upw, uph, numofframe);
 		std::cout << "numofiteration: " << numofiteration++ << std::endl;
 		numofframe++;
 	}
