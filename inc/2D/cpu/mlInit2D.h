@@ -52,7 +52,7 @@ inline void mrInitHandler2D::mlInitBoundaryCpu(mrFlow2D* mlflowvec)
 
 				if (y > 0 && x > 0 && y <= Ny * 15/50 - 2  && x <= Nx-2 )
 				{
-					mlflowvec->flag[curind] = mlflowvec->postflag[curind] = TYPE_F;
+					mlflowvec->flag[curind] = TYPE_F;
 				}
 
 				if (mlflowvec->flag[curind] == TYPE_S)

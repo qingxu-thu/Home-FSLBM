@@ -27,7 +27,7 @@ int main()
 	MLMappingParam mparam(uop, labma, l0p, nx, N);
 	mparam.tp = mparam.labma * mparam.l0p / (mparam.u0p * mparam.N);
 
-	lbmvec[0]->Create
+	lbmvec->Create
 	(
 		x0, y0, z0,
 		nx, ny, nz, delta_x,
@@ -49,10 +49,7 @@ int main()
 	std::cout << "interationNum:	" << interationNum << std::endl;
 
 	mlsolver.mlInitGpu();
-	for (int i = 0; i < (int)lbmvec.size(); i++)
-	{
-		mlsolver.mlTransData2Host(i);
-	}
+	mlsolver.mlTransData2Host();
 
 	int upw = nx;
 	int uph = nz;
@@ -60,7 +57,7 @@ int main()
 	mlsolver.mlVisVelocitySlice(upw, uph, numofframe);
 	mlsolver.mlVisMassSlice(upw, uph, numofframe);
 	numofframe++;
-
+	
 	while (numofframe <= 600)
 	{
 
@@ -68,10 +65,7 @@ int main()
 		{
 			mlsolver.mlIterateCouplingGpu(numofframe*320+itera);
 		}
-		for (int i = 0; i < (int)lbmvec.size(); i++)
-		{
-			mlsolver.mlTransData2Host(i);
-		}
+		mlsolver.mlTransData2Host();
 		mlsolver.mlVisVelocitySlice(upw, uph, numofframe);
 		mlsolver.mlVisMassSlice(upw, uph, numofframe);
 		mlsolver.mlSavePhi(upw, uph, numofframe);

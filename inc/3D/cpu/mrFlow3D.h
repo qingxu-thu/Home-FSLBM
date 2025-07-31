@@ -33,7 +33,7 @@ class mrFlow3D
 public:
 	mrFlow3D();
 	~mrFlow3D();
-	unsigned char* flag;// domain flag
+	MLLATTICENODE_SURFACE_FLAG* flag;// domain flag
 
 	REAL* fMom;
 	REAL* fMomPost;
@@ -220,11 +220,6 @@ inline void mrFlow3D::Create(
 				input_matrix[num] = 0;
 				label_matrix[num] = 0;
 				merge_detector[num] = false;
-
-				rho[num] = 1.f;
-				u[num].x = 0.f;
-				u[num].y = 0.f;
-				u[num].z = 0.f;
 
 			}
 		}

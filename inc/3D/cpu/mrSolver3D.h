@@ -28,6 +28,7 @@ public:
 	void mlInitGpu();
 	void mlDeepCopy(mrFlow3D* mllbm_host, mrFlow3D* mllbm_dev);
 	void mlVisVelocitySlice(long upw, long uph, int frame);
+	void mlVisMassSlice(long upw, long uph, int frame);
 	void mlSavePPM(const char* filename, float* data, int mWidth, int mHeight);
 	void mlTransResultantFandT2Host();
 	void mlIterateCouplingGpu(int timestep);
@@ -97,7 +98,7 @@ inline void mrSolver3D::mlTransData2Host()
 {
 	mrFlow3D* mllbm_host = new mrFlow3D();
 	checkCudaErrors(cudaSetDevice(gpuId));
-	checkCudaErrors(_MLCuMemcpy(mllbm_host, lbm_dev_gpu[i], 1 * sizeof(mrFlow3D), cudaMemcpyDeviceToHost));
+	checkCudaErrors(_MLCuMemcpy(mllbm_host, lbm_dev_gpu, 1 * sizeof(mrFlow3D), cudaMemcpyDeviceToHost));
 	checkCudaErrors(_MLCuMemcpy(lbmvec->fMom, (mllbm_host->fMom), lbmvec->count * 10 * sizeof(REAL), cudaMemcpyDeviceToHost));
 	checkCudaErrors(_MLCuMemcpy(lbmvec->flag, (mllbm_host->flag), lbmvec->count * sizeof(MLLATTICENODE_SURFACE_FLAG), cudaMemcpyDeviceToHost));
 	checkCudaErrors(_MLCuMemcpy(lbmvec->mass, (mllbm_host->mass), lbmvec->count * sizeof(float), cudaMemcpyDeviceToHost));
@@ -316,9 +317,8 @@ inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int frame)
 	int edx = lbmvec->param->samples.x;
 	int edy = lbmvec->param->samples.y;
 	int edz = lbmvec->param->samples.z;
-	//int y = 344;
 	int y = edy / 2;
-	//int y = 37;
+	int num = 0;
 	for (int z = stz; z < edz; z++)
 		for (int x = stx; x < edx; x++)
 		{
@@ -368,8 +368,8 @@ inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int frame)
 			int ind1 = x01 + y00 * lbmvec->param->samples.x;
 			int ind2 = x00 + y01 * lbmvec->param->samples.x;
 			int ind3 = x01 + y01 * lbmvec->param->samples.x;
-			double vv = (1 - rateY) * ((1 - rateX) * cutslice_ve[k * exz + ind0] + rateX * cutslice_ve[k * exz + ind1]) +
-				(rateY) * ((1 - rateX) * cutslice_ve[k * exz + ind2] + rateX * cutslice_ve[k * exz + ind3]);
+			double vv = (1 - rateY) * ((1 - rateX) * cutslice_ve[ind0] + rateX * cutslice_ve[ind1]) +
+				(rateY) * ((1 - rateX) * cutslice_ve[ind2] + rateX * cutslice_ve[ind3]);
 			vv = vv / 0.07;
 			vec3 color(0, 0, 0);
 			color_m.set_GLcolor(vv, COLOR__MAGMA, color, false);
@@ -377,15 +377,15 @@ inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int frame)
 			vertices[num++] = color.y;
 			vertices[num++] = color.z;
 		}
-		
-
-		char filename[2048];
-		sprintf(filename, "../dataMR3D/ppm_ve_home_test_f2_sphere/im%05d.ppm", frame);
-
-		mlSavePPM(filename, vertices, upw, uph);
-
-		delete[] vertices;
 	}
+
+	char filename[2048];
+	sprintf(filename, "../dataMR3D/ppm_ve_home_test_f2_sphere/im%05d.ppm", frame);
+
+	mlSavePPM(filename, vertices, upw, uph);
+
+	delete[] vertices;
+	
 	delete[] cutslice_ve;
 
 	// estimate the mass and max velocity
@@ -402,7 +402,7 @@ inline void mrSolver3D::mlVisVelocitySlice(long upw, long uph, int frame)
 	edy = lbmvec->param->samples.y;
 	edz = lbmvec->param->samples.z;
 
-
+	num = 0;
 	for (int z = stz; z < edz; z++)
 		for (int y = sty; y < edy; y++)
 			for (int x = stx; x < edx; x++)
@@ -449,6 +449,7 @@ inline void mrSolver3D::mlVisMassSlice(long upw, long uph, int frame)
 	int edy = lbmvec->param->samples.y;
 	int edz = lbmvec->param->samples.z;
 	int y = edy / 2;
+	int num = 0;
 	for (int z = stz; z < edz; z++)
 		for (int x = stx; x < edx; x++)
 		{
@@ -498,8 +499,8 @@ inline void mrSolver3D::mlVisMassSlice(long upw, long uph, int frame)
 			int ind1 = x01 + y00 * lbmvec->param->samples.x;
 			int ind2 = x00 + y01 * lbmvec->param->samples.x;
 			int ind3 = x01 + y01 * lbmvec->param->samples.x;
-			double vv = (1 - rateY) * ((1 - rateX) * cutslice_ve[k * exz + ind0] + rateX * cutslice_ve[k * exz + ind1]) +
-				(rateY) * ((1 - rateX) * cutslice_ve[k * exz + ind2] + rateX * cutslice_ve[k * exz + ind3]);
+			double vv = (1 - rateY) * ((1 - rateX) * cutslice_ve[ind0] + rateX * cutslice_ve[ind1]) +
+				(rateY) * ((1 - rateX) * cutslice_ve[ind2] + rateX * cutslice_ve[ind3]);
 			vv = vv / 1.0;
 			vec3 color(0, 0, 0);
 			color_m.set_GLcolor(vv, COLOR__MAGMA, color, false);

@@ -24,7 +24,15 @@ void MomSwap2D(REAL*& pt1, REAL*& pt2) {
 	pt2 = temp;
 }
 
-
+__device__ void report_split(mrFlow2D* mlflow, int x, int y, int sample_x, int sample_y)
+{
+	int curind = y * sample_x + x;
+	// use previous tag to record for the bubble volume change computation
+	mlflow[0].previous_tag[curind] = mlflow[0].tag_matrix[curind];
+	mlflow[0].tag_matrix[curind] = -1;
+	if (mlflow[0].previous_tag[curind]>0)
+		atomicExch(&mlflow[0].split_flag, 1);
+}
 
 __global__ void surface_1(
 	mrFlow2D* mlflow, int sample_x, int sample_y, int sample_num)
@@ -212,7 +220,7 @@ __global__ void surface_3(
 		else if (flagsn_sus == TYPE_IF) { // flag interface->fluid is set
 			mlflow[0].flag[curind] = (MLLATTICENODE_SURFACE_FLAG)((mlflow[0].flag[curind] & ~TYPE_SU) | TYPE_F); // cell becomes fluid
 			// if the node is changed to fluid, we need to report the split
-			report_split(mlflow, x, y, z, sample_x, sample_y, sample_z); // report interface->fluid conversion
+			report_split(mlflow, x, y, sample_x, sample_y); // report interface->fluid conversion
 			massexn = massn - rhon; // dump mass-rho difference into excess mass
 			massn = rhon; // fluid cell mass has to equal rho
 			phin = 1.0f; // set phi[n] to 1.0f for fluid cells
@@ -416,7 +424,7 @@ __global__ void stream_collide(
 			if ((mlflow[0].flag[ind_back] & TYPE_BO) == TYPE_S)
 			{
 				float feq[9]{};
-				mrutilfunc.calculate_f_eq(rhoVar, 0.f, 0.f, 0.f, feq); // calculate equilibrium DDFs
+				mrutilfunc.calculate_f_eq(mlflow[0].fMom[ind_back + 0 * sample_num], 0.f, 0.f, 0.f, feq); // calculate equilibrium DDFs
 				fhn[i] = feq[i];
 			}
 			else
@@ -906,19 +914,11 @@ __global__ void mrSolver2D_step2Kernel(
 }
 
 
-__device__ void report_split(mrFlow3D* mlflow, int x, int y, int z, int sample_x, int sample_y, int sample_z)
-{
-	int curind = z * sample_y * sample_x + y * sample_x + x;
-	// use previous tag to record for the bubble volume change computation
-	mlflow[0].previous_tag[curind] = mlflow[0].tag_matrix[curind];
-	mlflow[0].tag_matrix[curind] = -1;
-	if (mlflow[0].previous_tag[curind]>0)
-		atomicExch(&mlflow[0].split_flag, 1);
-}
+
 
 
 //assign neighbor tag to the current node
-__global__ void get_tag_kernel(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num)
+__global__ void get_tag_kernel(mrFlow2D* mlflow, int sample_x, int sample_y, int sample_num)
 {
 
 	int x = threadIdx.x + blockDim.x * blockIdx.x;
@@ -936,9 +936,8 @@ __global__ void get_tag_kernel(mrFlow3D* mlflow, int sample_x, int sample_y, int
 		for (int i = 1; i < 27; i++)
 		{
 
-			int dx = int(ex3d_gpu[i]);
-			int dy = int(ey3d_gpu[i]);
-			int dz = int(ez3d_gpu[i]);
+			int dx = int(ex2d_gpu[i]);
+			int dy = int(ey2d_gpu[i]);
 			int x1 = x - dx;
 			int y1 = y - dy;
 
@@ -974,7 +973,7 @@ __global__ void assign_tag_kernel(mrFlow2D* mlflow, int sample_x, int sample_y, 
 	// need to fix the following
 	if (
 		(x >= 0 && x <= sample_x - 1) &&
-		(y >= 0 && y <= sample_y - 1) &&
+		(y >= 0 && y <= sample_y - 1)
 		)
 	{
 		// use previous merge tag to avoid the confict
@@ -1516,7 +1515,7 @@ __global__ void g_reconstruction(
 			for (int i = 1; i < 5; i++)
 			{
 				if (flagsj_su[i] == TYPE_G)
-					mlflow[0].gMom[ind_back + i * sample_num] = geg[index2dInv_gpu[i]] - gon[index2dInv_gpu[i]] + geg[i];
+					mlflow[0].gMom[curind + i * sample_num] = geg[index2dInv_gpu[i]] - gon[index2dInv_gpu[i]] + geg[i];
 			}
 		}
 

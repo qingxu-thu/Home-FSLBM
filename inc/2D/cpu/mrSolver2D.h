@@ -79,9 +79,9 @@ inline void mrSolver2D::AttachMapping(MLMappingParam& mapping)
 inline void mrSolver2D::mlInit()
 {
 	checkCudaErrors(cudaSetDevice(gpuId));
-	mlinithandler2d.mlInitBoundaryCpu(lbmvec, 0);
-	mlinithandler2d.mlInitFlowVarCpu(lbmvec, 0);
-	mlinithandler2d.mlInitBubbleCpu(lbmvec, 5, 0.03, 0);
+	mlinithandler2d.mlInitBoundaryCpu(lbmvec);	
+	mlinithandler2d.mlInitFlowVarCpu(lbmvec);
+	mlinithandler2d.mlInitBubbleCpu(lbmvec, 5, 0.03);
 }
 
 inline void mrSolver2D::mlInitGpu()

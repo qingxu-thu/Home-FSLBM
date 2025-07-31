@@ -52,8 +52,8 @@ public:
 	REAL* phi;
 	REAL* disjoin_force;
 
-	bool merge_flag;
-	bool split_flag;
+	int merge_flag;
+	int split_flag;
 	REAL* delta_phi;
 
 	REAL vis_shear;

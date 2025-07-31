@@ -10,6 +10,103 @@
 #include "tDCCL.cuh"
 
 
+__host__ __device__
+void MomSwap(REAL*& pt1, REAL*& pt2) {
+	REAL* temp = pt1;
+	pt1 = pt2;
+	pt2 = temp;
+}
+
+
+__host__ __device__
+void MomSwap(double*& pt1, double*& pt2) {
+	double* temp = pt1;
+	pt1 = pt2;
+	pt2 = temp;
+}
+
+__host__ __device__ inline void swap(int& a, int& b) {
+	int temp = a;
+	a = b;
+	b = temp;
+}
+
+__device__ inline void swap(float& a, float& b) {
+	int temp = a;
+	a = b;
+	b = temp;
+}
+
+__device__ inline void swap(double& a, double& b) {
+	int temp = a;
+	a = b;
+	b = temp;
+}
+
+__device__ inline void swap(float3& a, float3& b) {
+	float3 temp = a;
+	a = b;
+	b = temp;
+}
+
+
+__device__ void report_split(mrFlow3D* mlflow, int x, int y, int z, int sample_x, int sample_y, int sample_z)
+{
+	int curind = z * sample_y * sample_x + y * sample_x + x;
+	// use previous tag to record for the bubble volume change computation
+	mlflow[0].previous_tag[curind] = mlflow[0].tag_matrix[curind];
+	mlflow[0].tag_matrix[curind] = -1;
+	if (mlflow[0].previous_tag[curind]>0)
+		atomicExch(&mlflow[0].split_flag, 1);
+}
+
+
+__global__ void clear_detector(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num)
+{
+	int x = threadIdx.x + blockDim.x * blockIdx.x;
+	int y = threadIdx.y + blockDim.y * blockIdx.y;
+	int z = threadIdx.z + blockDim.z * blockIdx.z;
+	int curind = z * sample_x * sample_y + y * sample_x + x;
+	if (
+		(x >= 0 && x <= sample_x - 1) &&
+		(y >= 0 && y <= sample_y - 1) &&
+		(z >= 0 && z <= sample_z - 1)
+		)
+	{
+		mlflow[0].merge_detector[curind] = 0;
+	}
+	if (curind == 1)
+	{
+		mlflow[0].split_flag = 0;
+		mlflow[0].merge_flag = 0;
+	}
+}
+
+void ClearDectector(mrFlow3D* mlflow, MLFluidParam3D* param)
+{
+	int sample_x = param->samples.x;
+	int sample_y = param->samples.y;
+	int sample_z = param->samples.z;
+	int sample_num = sample_x * sample_y;
+	int total_num = sample_num * sample_z;
+	dim3 threads1(BLOCK_NX, BLOCK_NY, BLOCK_NZ);
+	dim3 grid1(
+		ceil(REAL(sample_x) / threads1.x),
+		ceil(REAL(sample_y) / threads1.y),
+		ceil(REAL(sample_z) / threads1.z)
+	);
+
+	clear_detector << <grid1, threads1 >> >
+		(
+			mlflow,
+			sample_x, sample_y, sample_z,
+			sample_num
+			);
+	checkCudaErrors(cudaGetLastError());
+	checkCudaErrors(cudaDeviceSynchronize());
+}
+
+
 __global__ void clear_inlet(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int total_num)
 {
 
@@ -117,7 +214,7 @@ __global__ void calculate_disjoint(mrFlow3D* mlflow, int sample_x, int sample_y,
 						int z2 = z1 - int(ez3d_gpu[ijk + 1]);
 						if (x2 >= 0 && x2 < sample_x && y2 >= 0 && y2 < sample_y && z2 >= 0 && z2 < sample_z)
 						{
-							int ind_k = z2 * sample_num + y2 * sample_x + x2;
+							int ind_k = z2 * sample_y * sample_x + y2 * sample_x + x2;
 							if ((mlflow[0].flag[ind_k] & TYPE_BO) != TYPE_S)
 							{
 								phij[i] = mlflow[0].phi[ind_k];
@@ -646,7 +743,7 @@ __global__ void stream_collide_bvh(
 			if ((mlflow[0].flag[ind_back] & TYPE_BO) == TYPE_S)
 			{
 				float feq[27]{}; // f_equilibrium
-				mrutilfunc.calculate_f_eq(rhoVar_cur, 0.f, 0.f, 0.f, feq);
+				mrutilfunc.calculate_f_eq(mlflow[0].fMom[curind + total_num * 0], 0.f, 0.f, 0.f, feq);
 				fhn[i] = feq[i];
 			}
 			else
@@ -762,6 +859,11 @@ __global__ void stream_collide_bvh(
 					}
 				}
 			}
+			float rhon = 0.0f, uxn = 0.0f, uyn = 0.0f, uzn = 0.0f, rho_laplace = 0.0f; // no surface tension if rho_laplace is not overwritten later
+			rhon = mlflow[0].fMom[curind + total_num * 0];
+			uxn = mlflow[0].fMom[curind + total_num * 1];
+			uyn = mlflow[0].fMom[curind + total_num * 2];
+			uzn = mlflow[0].fMom[curind + total_num * 3];
 			phij[0] = mrutilfunc.calculate_phi(rhon, massn, flagsn); // don't load phi[n] from memory, instead recalculate it with mass corrected by excess mass
 			float curv = mrutilfunc.calculate_curvature(phij);
 			
@@ -794,11 +896,7 @@ __global__ void stream_collide_bvh(
 			rho_laplace = def_6_sigma_k == 0.0f ? 0.0f : def_6_sigma_k * curv;
 			
 			float feg[27]; // reconstruct f from neighbor gas lattice points
-			float rhon = 0.0f, uxn = 0.0f, uyn = 0.0f, uzn = 0.0f, rho_laplace = 0.0f; // no surface tension if rho_laplace is not overwritten later
-			rhon = mlflow[0].fMom[curind + total_num * 0];
-			uxn = mlflow[0].fMom[curind + total_num * 1];
-			uyn = mlflow[0].fMom[curind + total_num * 2];
-			uzn = mlflow[0].fMom[curind + total_num * 3];
+
 			const float rho2tmp = 0.5f / rhon; // apply external volume force (Guo forcing, Krueger p.233f)
 			float uxntmp = fma(mlflow[0].forcex[curind] * rhon, rho2tmp, uxn);// limit velocity (for stability purposes)
 			float uyntmp = fma(mlflow[0].forcey[curind] * rhon, rho2tmp, uyn);// force term: F*dt/(2*rho)
@@ -1199,90 +1297,6 @@ __global__ void atmosphere_volme_update_kernel(mrFlow3D* d_mlflow) {
 	}
 }
 
-__global__ void clear_detector(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num)
-{
-	int x = threadIdx.x + blockDim.x * blockIdx.x;
-	int y = threadIdx.y + blockDim.y * blockIdx.y;
-	int z = threadIdx.z + blockDim.z * blockIdx.z;
-	int curind = z * sample_x * sample_y + y * sample_x + x;
-	if (
-		(x >= 0 && x <= sample_x - 1) &&
-		(y >= 0 && y <= sample_y - 1) &&
-		(z >= 0 && z <= sample_z - 1)
-		)
-	{
-		mlflow[0].merge_detector[curind] = 0;
-	}
-	if (curind == 1)
-	{
-		mlflow[0].split_flag = 0;
-		mlflow[0].merge_flag = 0;
-	}
-}
-
-void ClearDectector(mrFlow3D* mlflow, MLFluidParam3D* param)
-{
-	int sample_x = param->samples.x;
-	int sample_y = param->samples.y;
-	int sample_z = param->samples.z;
-	int sample_num = sample_x * sample_y;
-	int total_num = sample_num * sample_z;
-	dim3 threads1(BLOCK_NX, BLOCK_NY, BLOCK_NZ);
-	dim3 grid1(
-		ceil(REAL(sample_x) / threads1.x),
-		ceil(REAL(sample_y) / threads1.y),
-		ceil(REAL(sample_z) / threads1.z)
-	);
-
-	clear_detector << <grid1, threads1 >> >
-		(
-			mlflow,
-			sample_x, sample_y, sample_z,
-			sample_num
-			);
-	checkCudaErrors(cudaGetLastError());
-	checkCudaErrors(cudaDeviceSynchronize());
-}
-
-__host__ __device__
-void MomSwap(REAL*& pt1, REAL*& pt2) {
-	REAL* temp = pt1;
-	pt1 = pt2;
-	pt2 = temp;
-}
-
-
-__host__ __device__
-void MomSwap(double*& pt1, double*& pt2) {
-	double* temp = pt1;
-	pt1 = pt2;
-	pt2 = temp;
-}
-
-__host__ __device__ inline void swap(int& a, int& b) {
-	int temp = a;
-	a = b;
-	b = temp;
-}
-
-__device__ inline void swap(float& a, float& b) {
-	int temp = a;
-	a = b;
-	b = temp;
-}
-
-__device__ inline void swap(double& a, double& b) {
-	int temp = a;
-	a = b;
-	b = temp;
-}
-
-__device__ inline void swap(float3& a, float3& b) {
-	float3 temp = a;
-	a = b;
-	b = temp;
-}
-
 // update the volume of the bubble with delta_phi
 __global__ void bubble_volume_update_kernel(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num, int total_num)
 {
@@ -1356,16 +1370,6 @@ __global__ void MergeSplitDetectorKernel(mrFlow3D* mlflow, int* merge_flag, int*
 	}
 }
 
-
-__device__ void report_split(mrFlow3D* mlflow, int x, int y, int z, int sample_x, int sample_y, int sample_z)
-{
-	int curind = z * sample_y * sample_x + y * sample_x + x;
-	// use previous tag to record for the bubble volume change computation
-	mlflow[0].previous_tag[curind] = mlflow[0].tag_matrix[curind];
-	mlflow[0].tag_matrix[curind] = -1;
-	if (mlflow[0].previous_tag[curind]>0)
-		atomicExch(&mlflow[0].split_flag, 1);
-}
 
 //assign neighbor tag to the current node
 __global__ void get_tag_kernel(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num)
@@ -1735,7 +1739,7 @@ __global__ void g_reconstruction(
 			for (int i = 1; i < 7; i++)
 			{
 				if (flagsj_su[i] == TYPE_G)
-					mlflow[0].gMom[ind_back + i * total_num] = geg[index3dInv_gpu[i]] - gon[index3dInv_gpu[i]] + geg[i];
+					mlflow[0].gMom[curind + i * total_num] = geg[index3dInv_gpu[i]] - gon[index3dInv_gpu[i]] + geg[i];
 			}
 		}
 
@@ -2000,7 +2004,7 @@ void mrSolver3DGpu(mrFlow3D* mlflow, MLFluidParam3D* param, float N, float l0p, 
 			mlflow,
 			sample_x, sample_y, sample_z,
 			sample_num, total_num, N, l0p, roup,
-			labma, u0p, t
+			labma, u0p, time_step
 			);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
@@ -2014,7 +2018,7 @@ void mrSolver3DGpu(mrFlow3D* mlflow, MLFluidParam3D* param, float N, float l0p, 
 			mlflow,
 			sample_x, sample_y, sample_z,
 			sample_num, total_num, N, l0p, roup,
-			labma, u0p, t
+			labma, u0p, time_step
 			);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());

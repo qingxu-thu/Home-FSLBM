@@ -132,6 +132,9 @@ inline void mrInitHandler3D::mlInitInlet(mrFlow3D* mlflowvec)
 inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 {
 	int total_num = mlflowvec->param->samples.x * mlflowvec->param->samples.y * mlflowvec->param->samples.z;
+	int Nx = mlflowvec->param->samples.x;
+	int Ny = mlflowvec->param->samples.y;
+	int Nz = mlflowvec->param->samples.z;
 	for (long z = 0; z < mlflowvec->param->samples.z; z++)
 	{
 		for (long y = 0; y < mlflowvec->param->samples.y; y++)

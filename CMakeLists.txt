@@ -48,6 +48,7 @@ FIND_PACKAGE( OpenMP REQUIRED)
 set(INC_DIR "${CMAKE_SOURCE_DIR}")
 add_executable(${PROJECT_NAME}
     ${INC_DIR}/src/testMrLBM3D_bubble.cpp
+    ${INC_DIR}/src/testMrLBM2D.cpp
 
 )
 
