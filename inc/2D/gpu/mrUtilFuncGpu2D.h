@@ -92,16 +92,16 @@ inline MLFUNC_TYPE float plic_cube_reduced(const float V, const float n1, const 
 	const float b = case34 ? sqn12 : 0.5f * (sqn12 + sq(n3));
 	const float c = case34 ? n12 : 0.5f;
 	const float t = sqrt(sq(c) - b);
-	return c - 2.0f * t * sin(0.33333334f * asin((cb(c) - 0.5f * a - 1.5f * b * c) / cb(t)));
+	return c - 2.0f * t * sinf(0.33333334f * asinf((cb(c) - 0.5f * a - 1.5f * b * c) / cb(t)));
 }
 
 inline MLFUNC_TYPE float mrUtilFuncGpu2D::plic_cube(const float V0, const float3 n) { // unit cube - plane intersection: volume V0 in [0,1], normal vector n -> plane offset d0
-	const float ax = fabs(n.x), ay = fabs(n.y), az = fabs(n.z), V = 0.5f - fabs(V0 - 0.5f), l = ax + ay + az; // eliminate symmetry cases, normalize n using L1 norm
+	const float ax = fabsf(n.x), ay = fabsf(n.y), az = fabsf(n.z), V = 0.5f - fabsf(V0 - 0.5f), l = ax + ay + az; // eliminate symmetry cases, normalize n using L1 norm
 	const float n1 = fmin(fmin(ax, ay), az) / l;
 	const float n3 = fmax(fmax(ax, ay), az) / l;
 	const float n2 = fdim(1.0f, n1 + n3); // ensure n2>=0
 	const float d = plic_cube_reduced(V, n1, n2, n3); // calculate PLIC with reduced symmetry
-	return l * copysign(0.5f - d, V0 - 0.5f); // rescale result and apply symmetry for V0>0.5
+	return l * copysignf(0.5f - d, V0 - 0.5f); // rescale result and apply symmetry for V0>0.5
 }
 
 inline MLFUNC_TYPE void lu_solve(float* M, float* x, float* b, const int N, const int Nsol)

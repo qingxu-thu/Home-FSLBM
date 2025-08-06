@@ -106,7 +106,7 @@ inline void mrSolver2D::mlTransData2Host()
 	checkCudaErrors(_MLCuMemcpy(lbmvec->mass, (mllbm_host->mass), lbmvec->count * sizeof(float), cudaMemcpyDeviceToHost));
 	checkCudaErrors(_MLCuMemcpy(lbmvec->massex, (mllbm_host->massex), lbmvec->count * sizeof(float), cudaMemcpyDeviceToHost));
 	checkCudaErrors(_MLCuMemcpy(lbmvec->phi, (mllbm_host->phi), lbmvec->count * sizeof(float), cudaMemcpyDeviceToHost));
-
+	checkCudaErrors(_MLCuMemcpy(lbmvec->disjoin_force, (mllbm_host->disjoin_force), lbmvec->count * sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 inline void mrSolver2D::mlTransData2Gpu()
@@ -309,9 +309,9 @@ inline void mrSolver2D::mlVisVelocitySlice(long upw, long uph, int frame)
 		{
 			int curind = y * lbmvec->param->samples.x + x;
 			float ux = 0, uy = 0, rho = 0;
-			rho = lbmvec->fMom[curind * 6 + 0];
-			ux = lbmvec->fMom[curind * 6 + 1];
-			uy = lbmvec->fMom[curind * 6 + 2];
+			rho = lbmvec->fMom[curind + 0 * total_num];
+			ux = lbmvec->fMom[curind + 1 * total_num];
+			uy = lbmvec->fMom[curind + 2 * total_num];
 			auto flag = lbmvec->flag[curind];
 			if ((flag!=TYPE_S&& flag != TYPE_G))
 				cutslice_ve[num] = sqrt(ux * ux + uy * uy)* (float)(flag == TYPE_F | flag == TYPE_I);
@@ -376,9 +376,9 @@ inline void mrSolver2D::mlVisVelocitySlice(long upw, long uph, int frame)
 		{
 			int curind = y * lbmvec->param->samples.x + x;
 			float ux = 0, uy = 0, rho = 0;
-			rho = lbmvec->fMom[curind * 6 + 0];
-			ux = lbmvec->fMom[curind * 6 + 1];
-			uy = lbmvec->fMom[curind * 6 + 2];
+			rho = lbmvec->fMom[curind + 0 * total_num];
+			ux = lbmvec->fMom[curind + 1 * total_num];
+			uy = lbmvec->fMom[curind + 2 * total_num];
 			auto flag = lbmvec->flag[curind];
 			float vel = 0.f;
 			float mass = 0.f;
@@ -414,9 +414,9 @@ inline void mrSolver2D::mlVisMassSlice(long upw, long uph, int frame)
 		{
 			int curind = y * lbmvec->param->samples.x + x;
 			float ux = 0, uy = 0, rho = 0;
-			rho = lbmvec->fMom[curind * 6 + 0];
-			ux = lbmvec->fMom[curind * 6 + 1];
-			uy = lbmvec->fMom[curind * 6 + 2];
+			rho = lbmvec->fMom[curind + 0 * total_num];
+			ux = lbmvec->fMom[curind  + 1 * total_num];
+			uy = lbmvec->fMom[curind + 2 * total_num];
 
 			auto flag = lbmvec->flag[curind];
 			auto mass = lbmvec->mass[curind];

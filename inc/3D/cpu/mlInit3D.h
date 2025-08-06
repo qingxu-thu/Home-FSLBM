@@ -113,6 +113,7 @@ inline void mrInitHandler3D::mlInitInlet(mrFlow3D* mlflowvec)
 						{
 							mlflowvec->fMomPost[total_num * i + curind] = mlflowvec->fMom[total_num * i + curind];
 						}
+						
 						for (int i = 0; i < 7; i++)
 						{
 							mlflowvec->gMomPost[total_num * i + curind] = mlflowvec->gMom[total_num * i + curind]
@@ -163,7 +164,7 @@ inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 					mlflowvec->c_value[curind] = 0e-7f;
 				}
 				//set the boundary for the inlet
-				if (x==1||x==2)
+				if (x>0&&x<=2)
 				{
 					if (y>=10&&y<=Ny-10&&(z==249||z==256))
 					{
@@ -173,7 +174,7 @@ inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 						mlflowvec->massex[curind] = 0.0;
 						mlflowvec->phi[curind] = 0.0;
 					}
-					if ((y==9||y==Ny-9)&(z>=249&&z<=256))
+					if ((y==9||y==Ny-9)&&(z>=249&&z<=256))
 					{
 						mlflowvec->flag[curind] = TYPE_S;
 						mlflowvec->fMom[curind + 0 * total_num] = 1.0;
@@ -185,6 +186,8 @@ inline void mrInitHandler3D::mlInitFlowVarCpu(mrFlow3D* mlflowvec)
 				mlflowvec->fMom[curind + 1 * total_num] = 0.0;
 				mlflowvec->fMom[curind + 2 * total_num] = 0.0;
 				mlflowvec->fMom[curind + 3 * total_num] = 0.0;
+
+				
 
 				for (int i = 0; i < 10; i++)
 				{

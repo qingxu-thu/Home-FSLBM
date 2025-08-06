@@ -116,7 +116,7 @@ inline MLFUNC_TYPE REAL plic_cube_reduced(const REAL V, const REAL n1, const REA
     const REAL b = case34 ? sqn12 : 0.5 * (sqn12 + sq(n3));
     const REAL c = case34 ? n12 : 0.5;
     const REAL t = sqrt(sq(c) - b);
-    return c - 2.0 * t * sinf(0.33333334 * asinf((cb(c) - 0.5 * a - 1.5 * b * c) / cb(t)));
+    return c - 2.0 * t * sinf(0.33333334 * asin((cb(c) - 0.5 * a - 1.5 * b * c) / cb(t)));
 }
 
 
@@ -359,7 +359,7 @@ inline MLFUNC_TYPE float3 mrUtilFuncGpu3D::calculate_normal(const float* phit)
 {
 	float phij[27];
 	for (int i = 0; i < 27; i++)
-		phij[i] = phit[index3dInv_gpu[i]];
+	phij[i] = phit[index3dInv_gpu[i]];
 
 	float3 bz;
 	bz.x = 4.0f * (phij[2] - phij[1]) + 2.0f * (phij[8] - phij[7] + phij[10] - phij[9] + phij[14] - phij[13] + phij[16] - phij[15]) + phij[20] - phij[19] + phij[22] - phij[21] + phij[24] - phij[23] + phij[25] - phij[26];

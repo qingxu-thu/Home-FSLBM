@@ -154,7 +154,7 @@ __global__ void ResetDisjoinForce(mrFlow3D* mlflow, int sample_x, int sample_y, 
 		(z >= 0 && z <= sample_z - 1)
 		)
 	{
-
+		mlflow[0].massex[curind] = 0.0f;
 		mlflow[0].disjoin_force[curind] = 0.f;
 	}
 }
@@ -928,9 +928,9 @@ __global__ void stream_collide_bvh(
 				massn += flagsj_su[i] & (TYPE_F | TYPE_I) ? flagsj_su[i] == TYPE_F ? fhn[i] - fon[index3dInv_gpu[i]] : 0.5f * (phij[i] + phij[0]) * (fhn[i] - fon[index3dInv_gpu[i]]) : 0.0f; // neighbor is fluid or interface cell
 			}
 			for (int i = 1; i < 27; i++)
-			{ 
+			{
 				if (flagsj_su[i] == TYPE_G)
-					fhn[i] = feg[index3dInv_gpu[i]] - fon[index3dInv_gpu[i]] + feg[i] ;
+					fhn[i] = feg[index3dInv_gpu[i]] - fon[index3dInv_gpu[i]] + feg[i];
 			}
 
 		}

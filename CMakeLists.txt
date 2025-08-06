@@ -83,7 +83,7 @@ target_link_libraries(${PROJECT_NAME}
 target_compile_features ( ${PROJECT_NAME} 
 	PUBLIC 
 		# cuda_std_14
-		cxx_std_11
+		cxx_std_14
 )
 
 # ------- CPU library ------ SHARED
@@ -116,8 +116,8 @@ add_library(${PROJECT_NAME}-cuda STATIC
  
 # set_property(TARGET ${PROJECT_NAME}-cuda PROPERTY CUDA_ARCHITECTURES ${FLR_CUDA_ARCH})
 set_property(TARGET ${PROJECT_NAME}-cuda PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET ${PROJECT_NAME}-cuda PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${PROJECT_NAME}-cuda PROPERTY CUDA_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME}-cuda PROPERTY CXX_STANDARD 14)
+set_property(TARGET ${PROJECT_NAME}-cuda PROPERTY CUDA_STANDARD 14)
 
 target_include_directories(${PROJECT_NAME}-cuda
     PRIVATE 
@@ -129,6 +129,7 @@ include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 target_compile_options(${PROJECT_NAME}-cuda
     PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
         # -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored --expt-relaxed-constexpr
 )
 

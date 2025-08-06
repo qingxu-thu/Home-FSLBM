@@ -100,10 +100,10 @@ __global__ void surface_2(
 
 				if (flagsji_sus == TYPE_F || flagsji_sus == TYPE_I || flagsji_sus == TYPE_IF) { // fluid or interface or (interface->fluid) neighbor
 					counter += 1.0f;
-					rhot += mlflow[0].fMom[ind_back + 0 * sample_num];
-					uxt += mlflow[0].fMom[ind_back + 1 * sample_num];
-					uyt += mlflow[0].fMom[ind_back + 2 * sample_num];
-					uzt += mlflow[0].fMom[ind_back + 3 * sample_num];
+					rhot += mlflow[0].fMomPost[ind_back + 0 * sample_num];
+					uxt += mlflow[0].fMomPost[ind_back + 1 * sample_num];
+					uyt += mlflow[0].fMomPost[ind_back + 2 * sample_num];
+					uzt += mlflow[0].fMomPost[ind_back + 3 * sample_num];
 					if (i < 5)
 					{
 						rho_gt += mlflow[0].c_value[ind_back];
@@ -137,10 +137,6 @@ __global__ void surface_2(
 			mlflow[0].fMomPost[curind + 3 * sample_num] = pixx;
 			mlflow[0].fMomPost[curind + 4 * sample_num] = piyy;
 			mlflow[0].fMomPost[curind + 5 * sample_num] = pixy;
-
-			mlflow[0].fMom[curind + 0 * sample_num] = rhon;
-			mlflow[0].fMom[curind + 1 * sample_num] = uxn;
-			mlflow[0].fMom[curind + 2 * sample_num] = uyn;
 			mlflow[0].c_value[curind] = rho_gt;
 
 			float geq[5];
@@ -193,7 +189,7 @@ __global__ void surface_3(
 	{
 		const unsigned char flagsn_sus = mlflow[0].flag[curind] & (TYPE_SU | TYPE_S); // extract SURFACE flags
 		if (flagsn_sus & TYPE_S) return;
-		const float rhon = mlflow[0].fMom[curind + 0 * sample_num]; // density of cell n
+		const float rhon = mlflow[0].fMomPost[curind + 0 * sample_num]; // density of cell n
 		float massn = mlflow[0].mass[curind]; // mass of cell n
 		float massexn = 0.0f; // excess mass of cell n
 		float phin = 0.0f;
@@ -281,9 +277,15 @@ __global__ void ResetDisjoinForce(mrFlow2D* mlflow, int sample_x, int sample_y, 
 	int x = threadIdx.x + blockDim.x * blockIdx.x;
 	int y = threadIdx.y + blockDim.y * blockIdx.y;
 	int curind = y * sample_x + x;
-	mlflow[0].disjoin_force[curind] = 0.f;
+	if (
+		(x >= 0 && x <= sample_x - 1) &&
+		(y >= 0 && y <= sample_y - 1)
+		)
+		{
+		mlflow[0].disjoin_force[curind] = 0.f;
+		mlflow[0].massex[curind] = 0.f;
+		}
 }
-
 
 __global__ void calculate_disjoint(mrFlow2D* mlflow, int sample_x, int sample_y, int sample_num)
 {
@@ -424,7 +426,7 @@ __global__ void stream_collide(
 			if ((mlflow[0].flag[ind_back] & TYPE_BO) == TYPE_S)
 			{
 				float feq[9]{};
-				mrutilfunc.calculate_f_eq(mlflow[0].fMom[ind_back + 0 * sample_num], 0.f, 0.f, 0.f, feq); // calculate equilibrium DDFs
+				mrutilfunc.calculate_f_eq(mlflow[0].fMom[curind + 0 * sample_num], 0.f, 0.f, 0.f, feq); // calculate equilibrium DDFs
 				fhn[i] = feq[i];
 			}
 			else
@@ -575,7 +577,7 @@ __global__ void stream_collide(
 				int x1 = x - dx;
 				int y1 = y - dy;
 				int ind_back = y1 * sample_x + x1;
-
+				flag_s = 0;
 				if (mlflow[0].flag[ind_back]==TYPE_S)
 				{
 					if (x1==0||x1==sample_x-1)
