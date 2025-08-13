@@ -383,7 +383,7 @@ inline void mrSolver2D::mlVisVelocitySlice(long upw, long uph, int frame)
 			float vel = 0.f;
 			float mass = 0.f;
 			if (flag != TYPE_S && flag != TYPE_G)
-				vel = sqrt(ux * ux + uy * uy) / (1.f + rho) * (float)(flag == TYPE_F | flag == TYPE_I);
+				vel = sqrt(ux * ux + uy * uy) * (float)(flag == TYPE_F | flag == TYPE_I);
 			mass = lbmvec->mass[curind];
 			pivot_vel = vel > max_vel ? y : pivot_vel;
 			max_vel = max(vel, max_vel);
