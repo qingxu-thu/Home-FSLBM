@@ -5,8 +5,7 @@
 #include "mrConstantParamsCpu3D.h"
 
 
-#define TPH_POISSON_IMPLEMENTATION
-#include "../common/tph_poisson.h"
+
 #include <array> 
 
 #include <vector>

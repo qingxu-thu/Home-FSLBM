@@ -702,7 +702,7 @@ __global__ void surface_3(
 
 __global__ void stream_collide_bvh(
 	mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num, int total_num, float N, float l0p, float roup, float labma,
-	mlVector3f u0p, int time)
+	float u0p, int time)
 {
 	int x = threadIdx.x + blockDim.x * blockIdx.x;
 	int y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -1257,7 +1257,7 @@ __device__ static double atomicExch(double *address, double val)
 
 // update the atmosphere for the open tank
 __global__ void atmosphere_rho_update_kernel(mrFlow3D* mlflow, int sample_x, int sample_y, int sample_z, int sample_num, int total_num, float N, float l0p, float roup, float labma,
-	mlVector3f u0p, int time) {
+	float u0p, int time) {
 
 		{
 			int x = threadIdx.x + blockDim.x * blockIdx.x;
@@ -1963,7 +1963,7 @@ void g_handle(mrFlow3D* mlflow, MLFluidParam3D* param, int time)
 
 
 void mrSolver3DGpu(mrFlow3D* mlflow, MLFluidParam3D* param, float N, float l0p, float roup, float labma,
-	mlVector3f u0p, int time_step)
+	float u0p, int time_step)
 {
 
 	int sample_x = param->samples.x;
@@ -2068,7 +2068,7 @@ void mrSolver3DGpu(mrFlow3D* mlflow, MLFluidParam3D* param, float N, float l0p, 
 
 
 void coupling(mrFlow3D* mlflow, MLFluidParam3D* param, float N, float l0p, float roup, float labma,
-	mlVector3f u0p, int time_step)
+	float u0p, int time_step)
 {
 	int sample_x = param->samples.x;
 	int sample_y = param->samples.y;

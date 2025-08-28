@@ -2,12 +2,14 @@
 #ifndef _MLFLUIDPARAM_
 #define _MLFLUIDPARAM_
 #include "mlCoreWin.h"
-#include "mlvertex.h"
+#include <cuda_runtime.h>  // 或 <vector_types.h>
 #include "mlDataType.h"
+
+
 struct MLFluidParam3D
 {
-	mlVertex3f start_pt; //the start position of the simulation domain in 2D world coordinate system
-	mlVertex3f end_pt; //the end position of the simulation domain in 2D world coordinate system
+	float3 start_pt; //the start position of the simulation domain in 2D world coordinate system
+	float3 end_pt; //the end position of the simulation domain in 2D world coordinate system
 	GVLSize3l samples;     //the sample numbers in each dimensions
 	GVLSize3l domian_size;     //the domain size
 	GVLSize3f box_size;     //the domain size
@@ -36,8 +38,8 @@ struct MLFluidParam3D
 
 struct MLFluidParam2D
 {
-	mlVertex2f start_pt; //the start position of the simulation domain in 2D world coordinate system
-	mlVertex2f end_pt; //the end position of the simulation domain in 2D world coordinate system
+	float3 start_pt; //the start position of the simulation domain in 2D world coordinate system
+	float3 end_pt; //the end position of the simulation domain in 2D world coordinate system
 	GVLSize2l samples;     //the sample numbers in each dimensions
 	GVLSize2l domian_size;     //the domain size
 	GVLSize2f box_size;     //the domain size
