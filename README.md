@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is the code release for "Kinetic Free-Surface Flows and Foams with Sharp Interfaces". The project implements HOME (Li et al. 2023) based free-surface flow and foam simulation based on the Lattice Boltzmann Method (LBM).
+This is the code release for "Kinetic Free-Surface Flows and Foams with Sharp Interfaces".
 
 ## Key Features
 
@@ -65,31 +65,3 @@ make -j$(nproc)
 ## License
 
 This project is licensed under the [License Type] License. See the LICENSE file for details.
-
-
-## Acknowledgments
-
-We thank all researchers and developers who have contributed to this project. The CCL part is from CUDA_CCL(2D) (https://github.com/FolkeV/CUDA_CCL/tree/master) and BUF in YACCLAB(3D) (https://github.com/prittt/YACCLAB). The 2D Possion disk sampling is from poisson-disk-generator (https://github.com/corporateshark/poisson-disk-generator).
-
-
-
-## Citation
-
-If you use this code in your research, please cite the following reference:
-
-```
-@article{kinetic_free_surface_2024,
-  title={Kinetic Free-Surface Flows and Foams with Sharp Interfaces},
-  author={[Author Names]},
-  journal={[Journal Name]},
-  year={2024},
-  volume={[Volume Number]},
-  pages={[Page Range]}
-}
-```
-
-## Reference
-
-[1] Li W, Wang T, Pan Z, et al. High-order moment-encoded kinetic simulation of turbulent flows[J]. ACM Transactions on Graphics (TOG), 2023, 42(6): 1-13.
-
-[2] S. Allegretti, F. Bolelli, C. Grana, "Optimized Block-Based Algorithms to Label Connected Components on GPUs," in IEEE Transactions on Parallel and Distributed Systems, 2019.
