@@ -19,9 +19,5 @@
 #define ML_CUDA_BLOCK_SIZE 8
 
 #define MLCUDA_DEVICE
-inline int GVLCuDivUp(int a, int b)
-{
-	return (a % b != 0) ? (a / b + 1) : (a / b);
-}
 
 #endif // !_MLCUDACOMMON_
