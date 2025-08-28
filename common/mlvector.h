@@ -4,11 +4,9 @@
 #define _mlVector_
 
 #include "math.h"
-//#include "mlcudaComon.h"
 #include "mlCoreWin.h"
 #include "memory.h"
 
-#include "mlTypeDef.h"
 
 #ifndef NULL
 #define NULL 0
@@ -1440,7 +1438,7 @@ public:
 	MLFUNC_TYPE T GetManhattanNorm();
 	MLFUNC_TYPE T GetSum();
 	MLFUNC_TYPE T GetSquaredSum();
-	MLFUNC_TYPE ML_RESULT Resize(long count);
+	MLFUNC_TYPE bool Resize(long count);
 	//MLFUNC_TYPE void GenRand(T low = 0, T up = 1);
 	MLFUNC_TYPE void GenGaussian(T center_v, REAL u = 0.0f, REAL sigma = 1.0f);
 	MLFUNC_TYPE void Zero();
@@ -1692,10 +1690,10 @@ MLFUNC_TYPE long mlVector<T>::GetCount()
 }
 
 template<class T>
-MLFUNC_TYPE ML_RESULT mlVector<T>::Resize(long count)
+MLFUNC_TYPE bool mlVector<T>::Resize(long count)
 {
 	if (count < 0)
-		return ML_PARAM_ERROR;
+		return false;
 
 	else if (count == 0)
 	{
@@ -1721,14 +1719,14 @@ MLFUNC_TYPE ML_RESULT mlVector<T>::Resize(long count)
 			else
 			{
 				this->count = 0;
-				return ML_MEM_ALLOC_ERROR;
+				return false;
 			}
 		}
 	}
 	data_old = data;
 	count_old = this->count;
 
-	return ML_SUCCESS;
+	return true;
 }
 
 template<class T>

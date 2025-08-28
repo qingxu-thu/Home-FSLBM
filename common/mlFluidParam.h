@@ -41,9 +41,7 @@ struct MLFluidParam2D
 	GVLSize2l samples;     //the sample numbers in each dimensions
 	GVLSize2l domian_size;     //the domain size
 	GVLSize2f box_size;     //the domain size
-								//mlVertex2f smoke_start_pt;
-							//mlVertex2f smoke_end_pt;
-							//GVLSize2f smoke_size; //the smoke size
+ 
 	REAL delta_x;
 	REAL delta_t;
 
