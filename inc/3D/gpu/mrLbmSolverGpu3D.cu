@@ -1832,7 +1832,7 @@ __global__ void g_stream_collide(
 		s[5] = s[6] = 1.5f;
 		for (int i = 0; i < 7; i++)
 		{
-			src = mlflow[0].src[curind];
+			src = mlflow[0].src[curind] * w3d_gpu[i];
 			pop_out[i] = fma(1.0f - s[i], pop_g[i], fma(s[i], g_eq[i], src));
 		}
 		mrutilfunc.mlConvertCmrF_d3q7(uxn,uyn,uzn,pop_out);

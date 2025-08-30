@@ -1590,7 +1590,7 @@ __global__ void g_stream_collide(
 		float src = 0.f;
 		for (int i = 0; i < 5; i++)
 		{
-			src = mlflow[0].src[curind];
+			src = mlflow[0].src[curind] * w2d_gpu[i];
 			REAL pop_out;
 			pop_out = fma(1.0f - w, pop_g[i], fma(w, g_eq[i], src));
 			mlflow[0].gMomPost[curind + i * sample_num] = pop_out;
