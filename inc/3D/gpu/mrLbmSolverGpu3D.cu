@@ -1824,6 +1824,14 @@ __global__ void g_stream_collide(
 		float src = 0.f;
 		mrutilfunc.mlConvertCmrMoment_d3q7(uxn,uyn,uzn,pop_g);
 		mrutilfunc.mlConvertCmrMoment_d3q7(uxn,uyn,uzn,g_eq);
+
+		float src_Q[7];
+		for (int i = 0; i < 7; i++)
+		{
+			src_Q[i] = mlflow[0].src[curind];
+		}
+		mrutilfunc.mlConvertCmrMoment_d3q7(uxn,uyn,uzn,src_Q);
+
 		float pop_out[7];
 		float s[7];
 		s[0] = 1.0f;
@@ -1832,7 +1840,7 @@ __global__ void g_stream_collide(
 		s[5] = s[6] = 1.5f;
 		for (int i = 0; i < 7; i++)
 		{
-			src = mlflow[0].src[curind];
+			src = src_Q[i] * (1 - s[i]/2);
 			pop_out[i] = fma(1.0f - s[i], pop_g[i], fma(s[i], g_eq[i], src));
 		}
 		mrutilfunc.mlConvertCmrF_d3q7(uxn,uyn,uzn,pop_out);
