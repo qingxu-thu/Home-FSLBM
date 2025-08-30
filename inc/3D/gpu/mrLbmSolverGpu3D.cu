@@ -1828,7 +1828,7 @@ __global__ void g_stream_collide(
 		float src_Q[7];
 		for (int i = 0; i < 7; i++)
 		{
-			src_Q[i] = mlflow[0].src[curind];
+			src_Q[i] = mlflow[0].src[curind] * d3q7_w[i];
 		}
 		mrutilfunc.mlConvertCmrMoment_d3q7(uxn,uyn,uzn,src_Q);
 
