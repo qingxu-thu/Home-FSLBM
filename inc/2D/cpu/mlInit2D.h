@@ -138,7 +138,7 @@ inline void mrInitHandler2D::mlInitFlowVarCpu(mrFlow2D* mlflowvec)
 				mlflowvec->gMomPost[total_num * i + curind] = mlflowvec->gMom[total_num * i + curind]
 					= 0;
 			}
-			mlflowvec->src[curind] = 5e-5;
+			mlflowvec->src[curind] = 3e-4;
 		}
 	}
 }
