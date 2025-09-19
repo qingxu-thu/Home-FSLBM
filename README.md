@@ -64,4 +64,4 @@ make -j$(nproc)
 
 ## License
 
-This project is licensed under the [License Type] License. See the LICENSE file for details.
+This project is licensed under the GNU General Public License. See the LICENSE file for details.
